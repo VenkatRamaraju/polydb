@@ -29,7 +29,7 @@ def fetch_data_from_s3(bucket_name='tknzr', region_name='us-east-1'):
     data_list = []
 
     # Get 10 elements
-    file_keys = file_keys[:1]
+    file_keys = file_keys
 
     # Fetch each file
     for file_key in file_keys:
@@ -41,7 +41,7 @@ def fetch_data_from_s3(bucket_name='tknzr', region_name='us-east-1'):
             
             # Add just the sentences
             for language in data.keys():
-                data_list.extend(data[language][:2])
+                data_list.extend(data[language])
         except json.JSONDecodeError:
             print(f"Error decoding JSON from {file_key}")
 

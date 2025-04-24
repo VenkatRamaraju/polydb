@@ -1,4 +1,4 @@
-from util import fetch_data_from_s3
+from .util import fetch_data_from_s3
 import requests
 from collections import Counter
 import numpy as np
@@ -21,6 +21,7 @@ def sample_negatives(k, vocab_size, sampling_probs, forbidden):
 def generate_sgns_pairs():
     # Grab data
     sentences = fetch_data_from_s3()
+    print("Done grabbing data...")
 
     # Grab and count frequencies of tokens
     token_freqs = Counter()
@@ -96,4 +97,4 @@ def generate_sgns_pairs():
     # Random shuffle
     random.shuffle(token_pairs)
 
-    return token_pairs
+    return token_pairs, vocab_size

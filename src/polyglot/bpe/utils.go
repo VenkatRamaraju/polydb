@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"normalize"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -176,8 +177,14 @@ func getHighestToken(mapTokenizer map[string]interface{}) (int64, error) {
 
 // loadMergesMap loads the merges map from the JSON file
 func LoadMergesMap() (map[string]interface{}, error) {
+	// Define the base directory for the project
+	baseDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get working directory: %w", err)
+	}
+
 	// Read merges map from JSON file
-	pdFile, err := os.Open("artifacts/merges.json")
+	pdFile, err := os.Open(filepath.Join(baseDir, "..", "..", "artifacts", "merges.json"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open merges file: %w", err)
 	}
