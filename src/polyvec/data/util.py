@@ -1,20 +1,22 @@
 import boto3
 import json
 import os
+import torch
+import io
 
-
-def fetch_data_from_s3(bucket_name='tknzr', region_name='us-east-1'):
+def fetch_data_from_s3(start: int, end: int):
     """
     Fetch all files from the specified S3 bucket and return their contents in a list.
     """
     # Retrieve AWS credentials from environment variables
     aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
     aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+    bucket_name = 'tknzr'
 
     # Create an S3 client using the environment variables
     s3_client = boto3.client(
         's3',
-        region_name=region_name,
+        region_name='us-east-1',
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key
     )
@@ -29,7 +31,8 @@ def fetch_data_from_s3(bucket_name='tknzr', region_name='us-east-1'):
     data_list = []
 
     # Get 10 elements
-    file_keys = file_keys[:1]
+    file_keys.sort()
+    file_keys = file_keys[start:end]
 
     # Fetch each file
     for file_key in file_keys:
@@ -47,4 +50,28 @@ def fetch_data_from_s3(bucket_name='tknzr', region_name='us-east-1'):
             print(f"Error decoding JSON from {file_key}")
 
     return data_list
+
+def upload_to_s3(pair, file_name):
+    # Load into buffer
+    buffer = io.BytesIO()
+    torch.save(pair, buffer)
+    buffer.seek(0)
+
+    # Upload as .pt to S3
+    aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+    aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+    try:
+        # Create an S3 client using the environment variables
+        s3_client = boto3.client(
+            's3',
+            region_name='us-east-1',
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key
+        )
+            
+        # Upload file name
+        s3_client.upload_fileobj(buffer, "sgns-pairs", file_name)
+    except Exception as err:
+        print("Unable to upload to s3:", str(err))
     

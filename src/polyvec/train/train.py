@@ -2,10 +2,12 @@ import os
 import sys
 
 # Define the base directory for the project
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+DATA_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BASE_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 # Set up paths
-sys.path.append(BASE_DIR)
+sys.path.append(DATA_DIRECTORY)
+sys.path.append(BASE_DIRECTORY)
 
 from numpy import negative
 import torch
@@ -57,20 +59,25 @@ class SGNSModel(nn.Module):
         # Hadamard product and sum for (center, context)
         context_affinity = torch.sum(center_embedding * context_embedding, dim=1)
 
-        # Dot product for (center, negatives) --> Squeeze/Unsqueeze to make dimensions match
+        # Dot product for (center, negatives) --> Unsqueeze then squeeze to make dimensions match
         negative_affinity = torch.bmm(negative_embeddings, torch.unsqueeze(center_embedding, 2)).squeeze(2)
 
         # Calculate and return loss
         return -F.logsigmoid(context_affinity).mean() - F.logsigmoid(-negative_affinity).mean()
 
 
+########################
 # Training loop
+########################
+
+start_idx = int(sys.argv[1])
+end_idx = int(sys.argv[2])
 
 # If you need to generate dataset first - if data is present, leave commented out
 start = time.time()
-generate_sgns_pairs()
+generate_sgns_pairs(start_idx, end_idx)
 print("Done generating SGNS data", time.time() - start)
-
+exit(1)
 
 # Get vocab size
 response = requests.get("http://localhost:8080/vocabulary-size")
@@ -80,7 +87,7 @@ vocab_size = vocab_data["vocabulary_size"]
 
 
 # List all files in the artifacts/pairs directory
-pairs_directory = os.path.join(BASE_DIR, 'artifacts', 'pairs')
+pairs_directory = os.path.join(BASE_DIRECTORY, 'artifacts', 'pairs')
 pair_files = sorted([
     os.path.join(pairs_directory, f)
     for f in os.listdir(pairs_directory)
@@ -94,7 +101,6 @@ dataloader = DataLoader(
     batch_size=512,
     num_workers=4,
     pin_memory=True,
-    # no shuffle!
 )
 
 # Initialize model and optimizer
@@ -136,4 +142,4 @@ for i in range(epochs):
     print("*" * 100)
 
     # Save embeddings after each epoch
-    torch.save(model.input_embedding.weight.data, os.path.join(BASE_DIR, 'artifacts', 'polyvec_embeddings_' + str(i) + '.pt'))
+    torch.save(model.input_embedding.weight.data, os.path.join(BASE_DIRECTORY, 'artifacts', 'pairs', 'polyvec_embeddings_' + str(i) + '.pt'))

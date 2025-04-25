@@ -1,4 +1,4 @@
-from .util import fetch_data_from_s3
+from .util import fetch_data_from_s3, upload_to_s3
 import requests
 from collections import Counter
 import numpy as np
@@ -7,6 +7,10 @@ import random
 import torch
 import concurrent.futures
 import time
+import os
+
+# Define the base directory for the project
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 def sample_negatives(k, vocab_size, sampling_probs, forbidden):
     negatives = []
@@ -54,26 +58,29 @@ def process_chunk(chunk, chunk_index, vocab_size, neg_sampling_probs, window_siz
                 negative_samples = [int(num) for num in sample_negatives(negative_sample_size, vocab_size, neg_sampling_probs, seen)]
                 token_pairs.append((token, context_token, negative_samples))
 
-    # Save the token pairs for this chunk
-    chunk_file_path = f"artifacts/pairs/pairs_chunk_{chunk_index}.pt"
-    torch.save(token_pairs, chunk_file_path)
+    # Upload to s3
+    file_name = "chunk_" + str(chunk_index) + ".pt"
+    upload_to_s3(token_pairs, file_name)
 
 
 def process_sentence(sentence):
     with requests.Session() as session:
         response = session.post("http://localhost:8080/encode", json=sentence)
         if response.status_code == 200:
-            tokens = response.json().get("tokens", [])
+            json_response = response.json()
+            tokens = json_response.get("tokens", [])
+            if not tokens:
+                print("Unprocessable request:", sentence, json_response)
             return tokens
         else:
             print(f"Failed to encode sentence: {sentence}, Status Code: {response.status_code}")
             return None
 
 
-def generate_sgns_pairs():
+def generate_sgns_pairs(start_idx, end_idx):
     # Grab data
     start = time.time()
-    sentences = fetch_data_from_s3()
+    sentences = fetch_data_from_s3(start_idx, end_idx)
     print("Done grabbing data from S3", time.time() - start)
 
     # Process sentences in parallel
@@ -113,18 +120,21 @@ def generate_sgns_pairs():
     # Iterate through sentences in chunks
     window_size = 5
     negative_sample_size = 15
-    chunk_size = 10000
+    chunk_size = 100000
 
     print("Ready to start processing chunks", time.time() - start)
 
     # Use ThreadPoolExecutor for parallel processing
     print("Total token list size", len(token_list))
+    print("Batch size", len(token_list) // chunk_size)
+
+    # Process chunks in parallel
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for chunk_index in range(0, len(token_list), chunk_size):
             chunk = token_list[chunk_index:chunk_index + chunk_size]
             print("Chunk index", chunk_index // chunk_size)
-            futures.append(executor.submit(process_chunk, chunk, chunk_index // chunk_size, vocab_size, neg_sampling_probs, window_size, negative_sample_size))
+            futures.append(executor.submit(process_chunk, chunk, start + (chunk_index // chunk_size), vocab_size, neg_sampling_probs, window_size, negative_sample_size))
 
         # Wait for all futures to complete
         concurrent.futures.wait(futures)
