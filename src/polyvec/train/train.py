@@ -2,10 +2,10 @@ import os
 import sys
 
 # Define the base directory for the project
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 # Set up paths
-sys.path.append(os.path.join(BASE_DIR, 'src'))
+sys.path.append(BASE_DIR)
 
 from numpy import negative
 import torch
@@ -16,26 +16,27 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 from data.sgns import generate_sgns_pairs
 import time
-
+import requests
+import json
 
 # Class setup
 
-# Dataset class
-class SGNSDataset(Dataset):
-    def __init__(self, triplets):
-        super().__init__()
-        self.pairs = triplets
+# Dataset, streamed
+class StreamingSGNSDataset(torch.utils.data.IterableDataset):
+    def __init__(self, shard_paths):
+        self.shard_paths = shard_paths
 
-    def __len__(self):
-        return len(self.pairs)
-    
-    def __getitem__(self, index):
-        center, context, negatives = self.pairs[index]
-        return (
-            torch.tensor(center, dtype=torch.long),
-            torch.tensor(context, dtype=torch.long),
-            torch.tensor(negatives, dtype=torch.long),
-        )
+    def __iter__(self):
+        # Loop through all shards
+        for shard_path in self.shard_paths:
+            triplets = torch.load(shard_path)
+            for center, context, negatives in triplets:
+                yield (
+                    torch.tensor(center, dtype=torch.long),
+                    torch.tensor(context, dtype=torch.long),
+                    torch.tensor(negatives, dtype=torch.long),
+                )
+
 
 # Embedding Model
 class SGNSModel(nn.Module):
@@ -65,12 +66,36 @@ class SGNSModel(nn.Module):
 
 # Training loop
 
-# Initialize dataset and dataloader
+# If you need to generate dataset first - if data is present, leave commented out
 start = time.time()
-training_triplets, vocab_size = generate_sgns_pairs()
-print("Done with data", time.time() - start)
-dataset = SGNSDataset(training_triplets)
-dataloader = DataLoader(dataset, batch_size=512, shuffle=True)
+generate_sgns_pairs()
+print("Done generating SGNS data", time.time() - start)
+
+
+# Get vocab size
+response = requests.get("http://localhost:8080/vocabulary-size")
+response_content = response.content.decode('utf-8')
+vocab_data = json.loads(response_content)
+vocab_size = vocab_data["vocabulary_size"]
+
+
+# List all files in the artifacts/pairs directory
+pairs_directory = os.path.join(BASE_DIR, 'artifacts', 'pairs')
+pair_files = sorted([
+    os.path.join(pairs_directory, f)
+    for f in os.listdir(pairs_directory)
+    if f.endswith('.pt')
+])
+
+# Set up dataset
+dataset = StreamingSGNSDataset(pair_files)
+dataloader = DataLoader(
+    dataset,
+    batch_size=512,
+    num_workers=4,
+    pin_memory=True,
+    # no shuffle!
+)
 
 # Initialize model and optimizer
 embedding_dim = 300
@@ -87,9 +112,9 @@ for i in range(epochs):
     total_loss = 0.0
     for center, context, negatives in dataloader:
         # Convert
-        center = center.long()
-        context = context.long()
-        negatives = negatives.long()
+        center = center.to(device).long()
+        context = context.to(device).long()
+        negatives = negatives.to(device).long()
 
         # Clear gradients
         optimizer.zero_grad()
@@ -104,8 +129,11 @@ for i in range(epochs):
         # Accrue loss
         total_loss += loss.item()
     
-    print("Epoch", i, "Loss", total_loss, "Elapsed", time.time() - start)
+    # Print statistics for this epoch
+    print("Epoch:", i)
+    print("Average Loss:", total_loss / len(dataloader))
+    print("Elapsed:", time.time() - start)
+    print("*" * 100)
 
-
-# Save input embeddings
-torch.save(model.input_embedding.weight.data, os.path.join(BASE_DIR, 'artifacts', 'polyvec_embeddings.pt'))
+    # Save embeddings after each epoch
+    torch.save(model.input_embedding.weight.data, os.path.join(BASE_DIR, 'artifacts', 'polyvec_embeddings_' + str(i) + '.pt'))

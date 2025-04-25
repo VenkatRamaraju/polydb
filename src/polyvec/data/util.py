@@ -29,10 +29,11 @@ def fetch_data_from_s3(bucket_name='tknzr', region_name='us-east-1'):
     data_list = []
 
     # Get 10 elements
-    file_keys = file_keys
+    file_keys = file_keys[:1]
 
     # Fetch each file
     for file_key in file_keys:
+        print(file_key)
         obj = s3_client.get_object(Bucket=bucket_name, Key=file_key)
         file_content = obj['Body'].read().decode('utf-8')
         try:

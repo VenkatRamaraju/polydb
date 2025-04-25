@@ -38,10 +38,10 @@ func GetHigestToken() (int64, error) {
 	}
 
 	// get the vocab size
-	vocabularySize, err := getHighestToken(mapMerges)
+	highestToken, err := getHighestToken(mapMerges)
 	if err != nil {
 		return -1, fmt.Errorf("Error getting vocabulary size: %s", err)
 	}
 
-	return vocabularySize, nil
+	return highestToken + 1, nil
 }
