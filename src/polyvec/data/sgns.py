@@ -9,9 +9,23 @@ import concurrent.futures
 import time
 import os
 import requests
+import time
+import grpc
+import proto.tokenizerpb.tokenizer_pb2 as tokenizer_pb2
+import proto.tokenizerpb.tokenizer_pb2_grpc as tokenizer_pb2_grpc
 
-# Define the base directory for the project
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# Create a GRPC client
+class TokenizerClient:
+    def __init__(self, socket_path="/tmp/tokenizer.sock"):
+        self.channel = grpc.insecure_channel(f'unix://{socket_path}')
+        self.stub = tokenizer_pb2_grpc.TokenizerStub(self.channel)
+
+    def encode(self, sentence):
+        request = tokenizer_pb2.EncodeRequest(text=sentence)
+        return self.stub.Encode(request)
+
+# Instantiate the GRPC client
+client = TokenizerClient()
 
 def sample_negatives(k, vocab_size, sampling_probs, forbidden):
     negatives = []
@@ -68,23 +82,18 @@ def process_sentence(sentence):
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            with requests.Session() as session:
-                response = session.post("http://localhost:8080/encode", json=sentence)
-                
-                if response.status_code == 200:
-                    json_response = response.json()
-                    tokens = json_response.get("tokens", [])
-                    if not tokens:
-                        print("Unprocessable request:", sentence, json_response)
-                    return tokens
-                else:
-                    print(f"Attempt {attempt + 1}: Failed to encode sentence, Status Code: {response.status_code}")
-        except requests.exceptions.RequestException as e:
-            print(f"Attempt {attempt + 1}: Request failed with exception: {e}")
+            response = client.encode(sentence)
+
+            tokens = response.tokens
+            if not tokens:
+                print("Unprocessable request:", sentence, response)
+            return tokens
         
-        # Optional: Add a delay between retries
-        time.sleep(1)
-    
+        except grpc.RpcError as e:
+            print(f"Attempt {attempt + 1}: gRPC call failed with exception: {e}")
+        
+        time.sleep(1)  # Optional delay between retries
+
     print("All retry attempts failed.")
     return None
 

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package tokenizer;
+
+option go_package = "./tokenizerpb";
+
+service Tokenizer {
+  rpc Encode (EncodeRequest) returns (EncodeResponse);
+}
+
+message EncodeRequest {
+  string text = 1;
+}
+
+message EncodeResponse {
+  repeated int64 tokens = 1;
+  repeated string token_texts = 2;
+}

@@ -4,7 +4,8 @@ import (
 	"bpe"
 	"flag"
 	"fmt"
-	"server"
+	"log"
+	"tgrpc"
 )
 
 // main function initializes the application and starts the training process.
@@ -23,11 +24,26 @@ func main() {
 		// get vocabulary size
 		iVocabSize, err := bpe.GetHigestToken()
 		if err != nil {
-			fmt.Println("Error while calculating vocabulary suze:", err)
+			fmt.Println("Error while calculating vocabulary soze:", err)
+			return
 		}
 		fmt.Println(iVocabSize)
 	} else {
-		// api mode
-		server.Launch()
+		// open up grpc
+		vocab, err := tgrpc.LoadVocab() // your vocab loading logic
+		if err != nil {
+			fmt.Println("Load vocabulary error:", err)
+			return
+		}
+
+		// start server
+		go func() {
+			if err := tgrpc.StartServer(vocab); err != nil {
+				log.Fatalf("gRPC server failed: %v", err)
+			}
+		}()
+
+		// block
+		select {}
 	}
 }

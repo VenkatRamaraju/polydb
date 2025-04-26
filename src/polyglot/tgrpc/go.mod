@@ -1,10 +1,19 @@
-module polyglot
+module tgrpc
 
 go 1.24.2
 
 require (
-	bpe v0.0.0
-	tgrpc v0.0.0-00010101000000-000000000000
+	bpe v0.0.0-00010101000000-000000000000
+	google.golang.org/grpc v1.72.0
+	proto v0.0.0-00010101000000-000000000000
+)
+
+replace (
+	bpe => ../bpe
+	normalize => ../normalize
+	proto => ../proto
+	server => ../server
+	tokenizerpb => ../proto/tokenizerpb
 )
 
 require (
@@ -30,16 +39,6 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
-	google.golang.org/grpc v1.72.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
-	normalize v0.0.0 // indirect
-	proto v0.0.0-00010101000000-000000000000 // indirect
-)
-
-replace (
-	bpe => ./bpe
-	normalize => ./normalize
-	proto => ./proto
-	server => ./server
-	tgrpc => ./tgrpc
+	normalize v0.0.0-00010101000000-000000000000 // indirect
 )
