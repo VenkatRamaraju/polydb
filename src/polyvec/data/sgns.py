@@ -8,6 +8,7 @@ import torch
 import concurrent.futures
 import time
 import os
+import requests
 
 # Define the base directory for the project
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -64,17 +65,28 @@ def process_chunk(chunk, chunk_index, vocab_size, neg_sampling_probs, window_siz
 
 
 def process_sentence(sentence):
-    with requests.Session() as session:
-        response = session.post("http://localhost:8080/encode", json=sentence)
-        if response.status_code == 200:
-            json_response = response.json()
-            tokens = json_response.get("tokens", [])
-            if not tokens:
-                print("Unprocessable request:", sentence, json_response)
-            return tokens
-        else:
-            print(f"Failed to encode sentence: {sentence}, Status Code: {response.status_code}")
-            return None
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with requests.Session() as session:
+                response = session.post("http://localhost:8080/encode", json=sentence)
+                
+                if response.status_code == 200:
+                    json_response = response.json()
+                    tokens = json_response.get("tokens", [])
+                    if not tokens:
+                        print("Unprocessable request:", sentence, json_response)
+                    return tokens
+                else:
+                    print(f"Attempt {attempt + 1}: Failed to encode sentence, Status Code: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Attempt {attempt + 1}: Request failed with exception: {e}")
+        
+        # Optional: Add a delay between retries
+        time.sleep(1)
+    
+    print("All retry attempts failed.")
+    return None
 
 
 def generate_sgns_pairs(start_idx, end_idx):
