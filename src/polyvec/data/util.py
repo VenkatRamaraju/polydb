@@ -4,6 +4,8 @@ import os
 import torch
 import io
 
+TOP_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
 def fetch_data_from_s3(start: int, end: int):
     """
     Fetch all files from the specified S3 bucket and return their contents in a list.
@@ -74,4 +76,25 @@ def upload_to_s3(pair, file_name):
         s3_client.upload_fileobj(buffer, "sgns-pairs", file_name)
     except Exception as err:
         print("Unable to upload to s3:", str(err))
-    
+
+
+def get_vocab_size():
+    merges_file = TOP_DIRECTORY + "/artifacts/merges.json"
+    try:
+        with open(merges_file, 'r') as f:
+            artifact_map = json.load(f)
+        
+        # Ordering
+        ordering_list = artifact_map["ordering"]
+        ordering_pair = ordering_list[len(ordering_list)-1]
+        lookup_key = str(ordering_pair[0]) + "," + str(ordering_pair[1])
+
+        # Merges map
+        merges_map = artifact_map["merges"]
+        vocab_value = merges_map[lookup_key]
+
+        return int(vocab_value) + 1
+
+    except Exception as err:
+        print(f"Error reading merges.json: {err}")
+        return None

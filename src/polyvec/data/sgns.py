@@ -1,4 +1,4 @@
-from .util import fetch_data_from_s3, upload_to_s3
+from .util import fetch_data_from_s3, upload_to_s3, get_vocab_size
 import requests
 from collections import Counter
 import numpy as np
@@ -11,8 +11,14 @@ import os
 import requests
 import time
 import grpc
-import proto.tokenizerpb.tokenizer_pb2 as tokenizer_pb2
-import proto.tokenizerpb.tokenizer_pb2_grpc as tokenizer_pb2_grpc
+import sys
+
+# Sys path
+PROTO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'proto'))
+sys.path.append(PROTO)
+
+import tokenizerpb.tokenizer_pb2 as tokenizer_pb2
+import tokenizerpb.tokenizer_pb2_grpc as tokenizer_pb2_grpc
 
 # Create a GRPC client
 class TokenizerClient:
@@ -122,10 +128,7 @@ def generate_sgns_pairs(start_idx, end_idx):
         token_freqs.update(sentence)
 
     # Get vocab size
-    response = requests.get("http://localhost:8080/vocabulary-size")
-    response_content = response.content.decode('utf-8')
-    vocab_data = json.loads(response_content)
-    vocab_size = vocab_data["vocabulary_size"]
+    vocab_size = get_vocab_size()
 
     # Initialize an array for probabilities
     freq_array = np.zeros(vocab_size, dtype=np.float64)
@@ -141,7 +144,7 @@ def generate_sgns_pairs(start_idx, end_idx):
     # Iterate through sentences in chunks
     window_size = 5
     negative_sample_size = 15
-    chunk_size = 100000
+    chunk_size = 200000
 
     print("Ready to start processing chunks", time.time() - start)
 

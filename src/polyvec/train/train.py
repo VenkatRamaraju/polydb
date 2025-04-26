@@ -20,6 +20,7 @@ from data.sgns import generate_sgns_pairs
 import time
 import requests
 import json
+from data.util import get_vocab_size
 
 # Class setup
 
@@ -80,10 +81,7 @@ print("Done generating SGNS data", time.time() - start)
 exit(1)
 
 # Get vocab size
-response = requests.get("http://localhost:8080/vocabulary-size")
-response_content = response.content.decode('utf-8')
-vocab_data = json.loads(response_content)
-vocab_size = vocab_data["vocabulary_size"]
+vocab_size = get_vocab_size()
 
 
 # List all files in the artifacts/pairs directory
