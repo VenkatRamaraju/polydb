@@ -47,7 +47,7 @@ def fetch_data_from_s3(start: int, end: int):
             
             # Add just the sentences
             for language in data.keys():
-                data_list.extend(data[language])
+                data_list.extend(data[language][:3])
         except json.JSONDecodeError:
             print(f"Error decoding JSON from {file_key}")
 
@@ -73,7 +73,7 @@ def upload_to_s3(pair, file_name):
         )
             
         # Upload file name
-        s3_client.upload_fileobj(buffer, "sgns-pairs", file_name)
+        s3_client.upload_fileobj(buffer, "sgns-pairs-beta", file_name)
     except Exception as err:
         print("Unable to upload to s3:", str(err))
 
@@ -97,4 +97,77 @@ def get_vocab_size():
 
     except Exception as err:
         print(f"Error reading merges.json: {err}")
+        return None
+
+def list_s3_pt_files(bucket_name='sgns-pairs-beta'):
+    """
+    List all .pt files in the specified S3 bucket.
+    
+    Args:
+        bucket_name (str): Name of the S3 bucket containing .pt files
+        
+    Returns:
+        list: List of dictionaries with keys 'key' (S3 object key) and 'size' (file size)
+    """
+    # Retrieve AWS credentials from environment variables
+    aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+    aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+    # Create an S3 client using the environment variables
+    s3_client = boto3.client(
+        's3',
+        region_name='us-east-1',
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key
+    )
+    
+    # List all objects in the bucket
+    files = []
+    paginator = s3_client.get_paginator('list_objects_v2')
+    
+    for page in paginator.paginate(Bucket=bucket_name):
+        if 'Contents' in page:
+            for obj in page['Contents']:
+                if obj['Key'].endswith('.pt'):
+                    files.append({
+                        'key': obj['Key'],
+                        'size': obj['Size']
+                    })
+    
+    # Sort files by name
+    files.sort(key=lambda x: x['key'])
+    return files
+
+def fetch_pt_file_from_s3(file_key, bucket_name='sgns-pairs-beta'):
+    """
+    Fetch a .pt file from S3 and load it using torch.load.
+    
+    Args:
+        file_key (str): S3 object key for the .pt file
+        bucket_name (str): Name of the S3 bucket
+        
+    Returns:
+        The loaded PyTorch object
+    """
+    # Retrieve AWS credentials from environment variables
+    aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+    aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+    # Create an S3 client using the environment variables
+    s3_client = boto3.client(
+        's3',
+        region_name='us-east-1',
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key
+    )
+    
+    try:
+        # Get the object from S3
+        response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+        
+        # Load the object using torch.load
+        buffer = io.BytesIO(response['Body'].read())
+        return torch.load(buffer)
+    except Exception as e:
+        print(f"Error fetching or loading {file_key} from S3: {str(e)}")
         return None

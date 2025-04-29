@@ -20,25 +20,43 @@ from data.sgns import generate_sgns_pairs
 import time
 import requests
 import json
-from data.util import get_vocab_size
+from data.util import get_vocab_size, list_s3_pt_files, fetch_pt_file_from_s3
 
 # Class setup
 
 # Dataset, streamed
 class StreamingSGNSDataset(torch.utils.data.IterableDataset):
-    def __init__(self, shard_paths):
-        self.shard_paths = shard_paths
+    def __init__(self, s3_files=None, bucket_name='sgns-pairs-beta'):
+        """
+        Initialize dataset with files from S3 bucket
+        
+        Args:
+            s3_files (list): List of file metadata from S3, if None will be fetched
+            bucket_name (str): Name of the S3 bucket containing the files
+        """
+        self.bucket_name = bucket_name
+        if s3_files is None:
+            self.s3_files = list_s3_pt_files(bucket_name)
+        else:
+            self.s3_files = s3_files
+        print(f"Found {len(self.s3_files)} .pt files in S3 bucket {bucket_name}")
 
     def __iter__(self):
-        # Loop through all shards
-        for shard_path in self.shard_paths:
-            triplets = torch.load(shard_path)
-            for center, context, negatives in triplets:
-                yield (
-                    torch.tensor(center, dtype=torch.long),
-                    torch.tensor(context, dtype=torch.long),
-                    torch.tensor(negatives, dtype=torch.long),
-                )
+        # Loop through all files in S3
+        for file_info in self.s3_files:
+            file_key = file_info['key']
+            print(f"Loading {file_key} from S3...")
+            triplets = fetch_pt_file_from_s3(file_key, self.bucket_name)
+            
+            if triplets is not None:
+                for center, context, negatives in triplets:
+                    yield (
+                        torch.tensor(center, dtype=torch.long),
+                        torch.tensor(context, dtype=torch.long),
+                        torch.tensor(negatives, dtype=torch.long),
+                    )
+            else:
+                print(f"Warning: Failed to load {file_key}")
 
 
 # Embedding Model
@@ -67,77 +85,81 @@ class SGNSModel(nn.Module):
         return -F.logsigmoid(context_affinity).mean() - F.logsigmoid(-negative_affinity).mean()
 
 
-########################
-# Training loop
-########################
+def train(start_idx, end_idx):
+    """Main training function"""
+    # If you need to generate dataset first - if data is present, leave commented out
+    # start = time.time()
+    # generate_sgns_pairs(start_idx, end_idx)
+    # print("Done generating SGNS data", time.time() - start)
+    # exit(1)
 
-start_idx = int(sys.argv[1])
-end_idx = int(sys.argv[2])
+    # Get vocab size
+    vocab_size = get_vocab_size()
 
-# If you need to generate dataset first - if data is present, leave commented out
-start = time.time()
-generate_sgns_pairs(start_idx, end_idx)
-print("Done generating SGNS data", time.time() - start)
-exit(1)
+    # Set the S3 bucket name containing the .pt files
+    s3_bucket_name = 'sgns-pairs-beta'
 
-# Get vocab size
-vocab_size = get_vocab_size()
+    # List all .pt files in the S3 bucket
+    s3_files = list_s3_pt_files(s3_bucket_name)
+
+    # Set up dataset
+    dataset = StreamingSGNSDataset(s3_files, s3_bucket_name)
+    dataloader = DataLoader(
+        dataset,
+        batch_size=512,
+        num_workers=4,
+    )
+
+    # Initialize model and optimizer
+    start = time.time()  # Start timer here for epoch tracking
+    embedding_dim = 300
+    model = SGNSModel(vocab_size, embedding_dim)
+    optimizer = Adam(model.parameters(), lr=1e-3)
+
+    # Move to GPU if available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+
+    # Start training loop
+    epochs = 5
+    for i in range(epochs):
+        total_loss = 0.0
+        count = 0
+        for center, context, negatives in dataloader:
+            # Convert
+            center = center.to(device).long()
+            context = context.to(device).long()
+            negatives = negatives.to(device).long()
+
+            # Clear gradients
+            optimizer.zero_grad()
+
+            # Forward pass
+            loss = model(center, context, negatives)
+            loss.backward()
+
+            # Set gradients
+            optimizer.step()
+
+            # Accrue loss
+            total_loss += loss.item()
+
+            # Count batches
+            count += 1
+        
+        # Print statistics for this epoch
+        print("Epoch:", i)
+        print("Average Loss:", total_loss / count)
+        print("Elapsed:", time.time() - start)
+        print("*" * 100)
+
+        # Save embeddings after each epoch
+        torch.save(model.input_embedding.weight.data, os.path.join(BASE_DIRECTORY, 'artifacts', 'polyvec_embeddings.pt'))
 
 
-# List all files in the artifacts/pairs directory
-pairs_directory = os.path.join(BASE_DIRECTORY, 'artifacts', 'pairs')
-pair_files = sorted([
-    os.path.join(pairs_directory, f)
-    for f in os.listdir(pairs_directory)
-    if f.endswith('.pt')
-])
-
-# Set up dataset
-dataset = StreamingSGNSDataset(pair_files)
-dataloader = DataLoader(
-    dataset,
-    batch_size=512,
-    num_workers=4,
-    pin_memory=True,
-)
-
-# Initialize model and optimizer
-embedding_dim = 300
-model = SGNSModel(vocab_size, embedding_dim)
-optimizer = Adam(model.parameters(), lr=1e-3)
-
-# Move to GPU if available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
-
-# Start training loop
-epochs = 5
-for i in range(epochs):
-    total_loss = 0.0
-    for center, context, negatives in dataloader:
-        # Convert
-        center = center.to(device).long()
-        context = context.to(device).long()
-        negatives = negatives.to(device).long()
-
-        # Clear gradients
-        optimizer.zero_grad()
-
-        # Forward pass
-        loss = model(center, context, negatives)
-        loss.backward()
-
-        # Set gradients
-        optimizer.step()
-
-        # Accrue loss
-        total_loss += loss.item()
+if __name__ == '__main__':
+    start_idx = int(sys.argv[1])
+    end_idx = int(sys.argv[2])
     
-    # Print statistics for this epoch
-    print("Epoch:", i)
-    print("Average Loss:", total_loss / len(dataloader))
-    print("Elapsed:", time.time() - start)
-    print("*" * 100)
-
-    # Save embeddings after each epoch
-    torch.save(model.input_embedding.weight.data, os.path.join(BASE_DIRECTORY, 'artifacts', 'pairs', 'polyvec_embeddings_' + str(i) + '.pt'))
+    torch.multiprocessing.set_start_method('spawn')
+    train(start_idx, end_idx)
