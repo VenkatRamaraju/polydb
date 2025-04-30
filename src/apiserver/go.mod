@@ -3,13 +3,12 @@ module apiserver
 go 1.24.2
 
 replace (
+	agrpc => ./agrpc
 	bpe => ../polyglot/bpe
 	normalize => ../polyglot/normalize
-	pool => ../pool
 )
 
 require (
-	bpe v0.0.0-00010101000000-000000000000 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.29.13 // indirect
@@ -28,8 +27,13 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.18 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
-	github.com/mattn/go-sqlite3 v1.14.28 // indirect
+	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
+	google.golang.org/grpc v1.72.0 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	normalize v0.0.0-00010101000000-000000000000 // indirect
-	pool v0.0.0-00010101000000-000000000000 // indirect
+	agrpc v0.0.0-00010101000000-000000000000
+	bpe v0.0.0-00010101000000-000000000000
 )

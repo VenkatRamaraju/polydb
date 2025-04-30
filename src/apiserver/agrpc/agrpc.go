@@ -53,7 +53,7 @@ func NewClient() (*Client, error) {
 }
 
 // GenerateEmbeddings sends token IDs to the embeddings service and returns the embedding vectors
-func (c *Client) GenerateEmbeddings(tokenIDs []int64) ([]float32, int32, error) {
+func (c *Client) GenerateEmbeddings(tokenIDs []int64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -61,14 +61,16 @@ func (c *Client) GenerateEmbeddings(tokenIDs []int64) ([]float32, int32, error) 
 		TokenIds: tokenIDs,
 	})
 
+	fmt.Println("Response!", resp)
+
 	if err != nil {
 		if st, ok := status.FromError(err); ok {
-			return nil, 0, fmt.Errorf("embeddings service error (%s): %s", st.Code(), st.Message())
+			return fmt.Errorf("embeddings service error (%s): %s", st.Code(), st.Message())
 		}
-		return nil, 0, fmt.Errorf("failed to generate embeddings: %w", err)
+		return fmt.Errorf("failed to generate embeddings: %w", err)
 	}
 
-	return resp.EmbeddingVectors, resp.EmbeddingDim, nil
+	return nil
 }
 
 // Close closes the client connection

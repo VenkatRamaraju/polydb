@@ -1,7 +1,7 @@
 package apiserver
 
 import (
-	"apiserver/agrpc"
+	"agrpc"
 	"bpe"
 	"encoding/json"
 	"fmt"
@@ -71,12 +71,10 @@ func Insert(sText string, sUUID string) *InsertResponse {
 	defer embClient.Close()
 
 	// Generate embeddings using gRPC
-	result, err := embClient.GenerateEmbeddings(alTokens)
+	err = embClient.GenerateEmbeddings(alTokens)
 	if err != nil {
 		return &InsertResponse{Status: "error", Error: fmt.Sprintf("Failed to generate embeddings: %v", err)}
 	}
-
-	fmt.Println(result)
 
 	return nil
 }

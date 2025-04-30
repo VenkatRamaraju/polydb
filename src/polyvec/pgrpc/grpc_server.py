@@ -9,17 +9,19 @@ import time
 
 # Define base path
 BASE_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+LOCAL_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(BASE_DIRECTORY)
+sys.path.append(LOCAL_DIRECTORY)
 
 # Import the embeddings module and proto-generated code
 from train.embeddings import generate_embeddings
 sys.path.append(os.path.join(BASE_DIRECTORY, 'src', 'polyvec', 'proto'))
 
 # Import the generated proto classes (after generating them)
-import embeddingspb_pb2
-import embeddingspb_pb2_grpc
+import embeddings_pb2
+import embeddings_pb2_grpc
 
-class EmbeddingsServicer(embeddingspb_pb2_grpc.EmbeddingsServicer):
+class EmbeddingsServicer(embeddings_pb2_grpc.EmbeddingsServicer):
     def GenerateEmbeddings(self, request, context):
         try:
             # Convert token IDs to tensor and generate embeddings
@@ -38,7 +40,7 @@ class EmbeddingsServicer(embeddingspb_pb2_grpc.EmbeddingsServicer):
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    embeddingspb_pb2_grpc.add_EmbeddingsServicer_to_server(
+    embeddings_pb2_grpc.add_EmbeddingsServicer_to_server(
         EmbeddingsServicer(), server)
     
     # Use a Unix socket for communication

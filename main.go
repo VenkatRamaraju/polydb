@@ -5,6 +5,7 @@ import (
 	"apiserver"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -74,6 +75,9 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+
+	fmt.Println(apiserver.Insert("venkat ramaraju", "1"))
+	os.Exit(1)
 
 	// launch handler routines on apiserver
 	HANDLERS := 100

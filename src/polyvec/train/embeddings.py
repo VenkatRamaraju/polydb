@@ -1,10 +1,10 @@
 import torch
 import os
 import sys
+from data.util import fetch_pt_file_from_s3
 
 # Define base path
 BASE_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-EMBEDDING_FILE = os.path.join(BASE_DIRECTORY, 'artifacts', 'pairs', 'polyvec_embeddings_4.pt')
 DATA_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
 
 # Set up paths
@@ -15,7 +15,7 @@ sys.path.append(BASE_DIRECTORY)
 from sgns import process_sentence
 
 # Load embeddings globally at startup
-embedding_matrix = torch.load(EMBEDDING_FILE)
+embedding_matrix = fetch_pt_file_from_s3("sgns-artifacts", "polyvec_embeddings.pt")
 
 def generate_embeddings(token_ids):
     if not isinstance(token_ids, torch.Tensor):
