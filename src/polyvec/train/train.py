@@ -20,7 +20,7 @@ from data.sgns import generate_sgns_pairs
 import time
 import requests
 import json
-from data.util import get_vocab_size, list_s3_pt_files, fetch_pt_file_from_s3
+from data.util import get_vocab_size, list_s3_pt_files, fetch_pt_file_from_s3, upload_tensor_to_s3
 
 # Class setup
 
@@ -46,7 +46,7 @@ class StreamingSGNSDataset(torch.utils.data.IterableDataset):
         for file_info in self.s3_files:
             file_key = file_info['key']
             print(f"Loading {file_key} from S3...")
-            triplets = fetch_pt_file_from_s3(file_key, self.bucket_name)
+            triplets = fetch_pt_file_from_s3(self.bucket_name, file_key)
             
             if triplets is not None:
                 for center, context, negatives in triplets:
@@ -85,8 +85,7 @@ class SGNSModel(nn.Module):
         return -F.logsigmoid(context_affinity).mean() - F.logsigmoid(-negative_affinity).mean()
 
 
-def train(start_idx, end_idx):
-    """Main training function"""
+def train(start_idx, end_idx):    
     # If you need to generate dataset first - if data is present, leave commented out
     # start = time.time()
     # generate_sgns_pairs(start_idx, end_idx)
@@ -154,12 +153,12 @@ def train(start_idx, end_idx):
         print("*" * 100)
 
         # Save embeddings after each epoch
-        torch.save(model.input_embedding.weight.data, os.path.join(BASE_DIRECTORY, 'artifacts', 'polyvec_embeddings.pt'))
+        upload_tensor_to_s3(
+            tensor=model.input_embedding.weight.data,
+            key='polyvec_embeddings.pt'
+        )
 
 
 if __name__ == '__main__':
-    start_idx = int(sys.argv[1])
-    end_idx = int(sys.argv[2])
-    
     torch.multiprocessing.set_start_method('spawn')
-    train(start_idx, end_idx)
+    train(int(sys.argv[1]), int(sys.argv[2]))

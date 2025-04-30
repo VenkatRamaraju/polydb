@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package embeddings;
+
+option go_package = "./embeddingspb";
+
+service Embeddings {
+  rpc GenerateEmbeddings (EmbeddingsRequest) returns (EmbeddingsResponse);
+}
+
+message EmbeddingsRequest {
+  repeated int64 token_ids = 1;
+}
+
+message EmbeddingsResponse {
+  bool success = 1;
+  string error_message = 2; // Optional error message if success is false
+}

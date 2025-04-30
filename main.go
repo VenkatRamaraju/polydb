@@ -5,7 +5,6 @@ import (
 	"apiserver"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -32,18 +32,22 @@ func makeInsertHandler(og *zap.Logger) http.HandlerFunc {
 			return
 		}
 
-		// insert function
-		// if err := apiserver.Insert(req.Text); err != nil {
-		// 	writeJSON(w, http.StatusBadRequest, insertResponse{Status: "error", Error: err.Error()})
-		// 	return
-		// }
+		// insert request into channel
+		req.UUID = uuid.New().String()
+		apiserver.ChannelInsertRequests <- &req
 
-		apiserver.ChannelInsertRequests <- req
-
-		fmt.Println()
-
-		// response
-		writeJSON(w, http.StatusOK, apiserver.InsertResponse{Status: "ok"})
+		// block on response with timeout for response
+		select {
+		case res := <-apiserver.MapChannelResponse[req.UUID]:
+			// response
+			if res.Error == "" {
+				writeJSON(w, http.StatusOK, apiserver.InsertResponse{Status: res.Status})
+			} else {
+				writeJSON(w, http.StatusOK, apiserver.InsertResponse{Status: res.Status, Error: res.Error})
+			}
+		case <-time.After(5 * time.Second):
+			writeJSON(w, http.StatusOK, apiserver.InsertResponse{Error: "timeout"})
+		}
 	}
 }
 
@@ -69,6 +73,12 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
+	}
+
+	// launch handler routines on apiserver
+	HANDLERS := 100
+	for iIndex := 0; iIndex < HANDLERS; iIndex++ {
+		go apiserver.LaunchHandler()
 	}
 
 	// clean shutdown

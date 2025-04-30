@@ -17,7 +17,7 @@ from sgns import process_sentence
 # Load embeddings globally at startup
 embedding_matrix = torch.load(EMBEDDING_FILE)
 
-def embed_token(token_ids):
+def generate_embeddings(token_ids):
     if not isinstance(token_ids, torch.Tensor):
         token_ids = torch.tensor(token_ids, dtype=torch.long)
 

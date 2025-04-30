@@ -1,4 +1,4 @@
-from util import fetch_data_from_s3, upload_to_s3, get_vocab_size
+from .util import fetch_data_from_s3, upload_to_s3, get_vocab_size
 import requests
 from collections import Counter
 import numpy as np
@@ -107,7 +107,7 @@ def process_sentence(sentence):
 def generate_sgns_pairs(start_idx, end_idx):
     # Grab data
     start = time.time()
-    sentences = fetch_data_from_s3(start_idx, end_idx)
+    sentences = fetch_data_from_s3("tknzr", start_idx, end_idx)
     print("Done grabbing data from S3", time.time() - start)
 
     # Process sentences in parallel
