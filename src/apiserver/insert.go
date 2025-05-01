@@ -62,7 +62,6 @@ func Insert(sText string, sUUID string) *InsertResponse {
 		return &InsertResponse{Status: "error", Error: err.Error()}
 	}
 
-	// insert into embeddings storage (faiss)
 	// Connect to embeddings service
 	embClient, err := agrpc.NewClient()
 	if err != nil {
@@ -71,7 +70,7 @@ func Insert(sText string, sUUID string) *InsertResponse {
 	defer embClient.Close()
 
 	// Generate embeddings using gRPC
-	err = embClient.GenerateEmbeddings(alTokens)
+	err = embClient.GenerateEmbeddings(sText, alTokens, sUUID)
 	if err != nil {
 		return &InsertResponse{Status: "error", Error: fmt.Sprintf("Failed to generate embeddings: %v", err)}
 	}

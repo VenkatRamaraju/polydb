@@ -10,6 +10,8 @@ service Embeddings {
 
 message EmbeddingsRequest {
   repeated int64 token_ids = 1;
+  string text = 2;
+  string uuid = 3;
 }
 
 message EmbeddingsResponse {

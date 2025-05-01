@@ -2,6 +2,7 @@ package agrpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -53,21 +55,32 @@ func NewClient() (*Client, error) {
 }
 
 // GenerateEmbeddings sends token IDs to the embeddings service and returns the embedding vectors
-func (c *Client) GenerateEmbeddings(tokenIDs []int64) error {
+func (c *Client) GenerateEmbeddings(sText string, tokenIDs []int64, sUUID string) error {
+	// Create a context with metadata containing text and UUID
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	
+	// Add metadata to the context
+	md := metadata.New(map[string]string{
+		"text": sText,
+		"uuid": sUUID,
+	})
+	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	resp, err := c.client.GenerateEmbeddings(ctx, &pb.EmbeddingsRequest{
 		TokenIds: tokenIDs,
 	})
-
-	fmt.Println("Response!", resp)
 
 	if err != nil {
 		if st, ok := status.FromError(err); ok {
 			return fmt.Errorf("embeddings service error (%s): %s", st.Code(), st.Message())
 		}
 		return fmt.Errorf("failed to generate embeddings: %w", err)
+	}
+
+	// check for error
+	if !resp.Success {
+		return errors.New(resp.ErrorMessage)
 	}
 
 	return nil
