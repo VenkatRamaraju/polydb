@@ -6,8 +6,8 @@ replace (
 	agrpc => ./src/apiserver/agrpc
 	apiserver => ./src/apiserver
 	bpe => ./src/polyglot/bpe
-	normalize => ./src/polyglot/normalize
 	embeddingspb => ./src/polyvec/proto
+	normalize => ./src/polyglot/normalize
 )
 
 require (
@@ -44,7 +44,6 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/grpc v1.72.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	normalize v0.0.0-00010101000000-000000000000 // indirect
-	embeddingspb v0.0.0-00010101000000-000000000000
 )

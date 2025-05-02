@@ -15,8 +15,10 @@ sys.path.append(LOCAL_DIRECTORY)
 
 # Import the embeddings module and proto-generated code
 sys.path.append(os.path.join(BASE_DIRECTORY, 'src', 'polyvec', 'proto'))
+sys.path.append(os.path.join(BASE_DIRECTORY, 'src', 'storage'))
+
 from train.embeddings import generate_embeddings
-from storage.insert import insert_embedding
+from storage.storage import insert_embedding, find_similar_embeddings
 
 # Import the generated proto classes (after generating them)
 import embeddings_pb2
@@ -46,6 +48,36 @@ class EmbeddingsServicer(embeddings_pb2_grpc.EmbeddingsServicer):
         except Exception as e:
             error_msg = f"Error generating embeddings: {str(e)}"
             response = embeddings_pb2.EmbeddingsResponse()
+            response.success = False
+            response.error_message = error_msg
+            
+            # Set gRPC status code for debugging but still return response object
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(error_msg)
+            return response
+            
+    def FindSimilarEmbeddings(self, request, context):
+        try:
+            # Get token IDs from the request
+            token_ids = list(request.token_ids)
+            top_k = request.top_k if request.top_k > 0 else 5  # Default to 5 if not specified
+            
+            # Generate embeddings from tokens
+            query_embedding = generate_embeddings(token_ids)
+            
+            # Find similar embeddings using the existing function
+            similar_texts = find_similar_embeddings(query_embedding, top_k=top_k)
+
+            print(similar_texts)
+            
+            # Create and return a proper response protobuf object
+            response = embeddings_pb2.FindSimilarResponse()
+            response.success = True
+            response.similar_texts = similar_texts
+            return response
+        except Exception as e:
+            error_msg = f"Error finding similar embeddings: {str(e)}"
+            response = embeddings_pb2.FindSimilarResponse()
             response.success = False
             response.error_message = error_msg
             

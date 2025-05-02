@@ -16,7 +16,7 @@ var ChannelInsertRequests = make(chan *InsertRequest)
 var MapChannelResponse = make(map[string](chan *InsertResponse))
 
 // map for calculating insertions
-var mapMerges map[string]interface{}
+var MapMerges map[string]interface{}
 
 // structs for state maintenance
 type InsertRequest struct {
@@ -39,7 +39,7 @@ func Initialize() error {
 	}
 
 	// Read merges map from JSON file
-	pdFile, err := os.Open(filepath.Join(baseDir, "..", "..", "artifacts", "merges.json"))
+	pdFile, err := os.Open(filepath.Join(baseDir, "artifacts", "merges.json"))
 	if err != nil {
 		return fmt.Errorf("failed to open merges file: %w", err)
 	}
@@ -47,7 +47,7 @@ func Initialize() error {
 
 	// Decode the JSON data into the map
 	decoder := json.NewDecoder(pdFile)
-	if err = decoder.Decode(&mapMerges); err != nil {
+	if err = decoder.Decode(&MapMerges); err != nil {
 		return fmt.Errorf("failed to decode merges map: %w", err)
 	}
 
@@ -57,7 +57,7 @@ func Initialize() error {
 // insert into database
 func Insert(sText string, sUUID string) *InsertResponse {
 	// Convert to tokens
-	alTokens, err := bpe.Encode(mapMerges, sText)
+	alTokens, err := bpe.Encode(MapMerges, sText)
 	if err != nil {
 		return &InsertResponse{Status: "error", Error: err.Error()}
 	}

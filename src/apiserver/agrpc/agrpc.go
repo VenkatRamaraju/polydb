@@ -59,7 +59,7 @@ func (c *Client) GenerateEmbeddings(sText string, tokenIDs []int64, sUUID string
 	// Create a context with metadata containing text and UUID
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	// Add metadata to the context
 	md := metadata.New(map[string]string{
 		"text": sText,
@@ -84,6 +84,33 @@ func (c *Client) GenerateEmbeddings(sText string, tokenIDs []int64, sUUID string
 	}
 
 	return nil
+}
+
+// FindSimilarEmbeddings sends token IDs to find similar embeddings and returns a list of similar texts
+func (c *Client) FindSimilarEmbeddings(tokenIDs []int64, topK int32) ([]string, error) {
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Call the gRPC method
+	resp, err := c.client.FindSimilarEmbeddings(ctx, &pb.FindSimilarRequest{
+		TokenIds: tokenIDs,
+		TopK:     topK,
+	})
+
+	if err != nil {
+		if st, ok := status.FromError(err); ok {
+			return nil, fmt.Errorf("embeddings service error (%s): %s", st.Code(), st.Message())
+		}
+		return nil, fmt.Errorf("failed to find similar embeddings: %w", err)
+	}
+
+	// Check for error in response
+	if !resp.Success {
+		return nil, errors.New(resp.ErrorMessage)
+	}
+
+	return resp.SimilarTexts, nil
 }
 
 // Close closes the client connection

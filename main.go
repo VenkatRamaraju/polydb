@@ -48,6 +48,47 @@ func makeInsertHandler(og *zap.Logger) http.HandlerFunc {
 		case <-time.After(5 * time.Second):
 			writeJSON(w, http.StatusOK, apiserver.InsertResponse{Error: "timeout"})
 		}
+		// Clean up the channel
+		delete(apiserver.MapChannelFindSimilarResponse, req.UUID)
+	}
+}
+
+func makeFindSimilarHandler(og *zap.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// parse request
+		var req apiserver.FindSimilarRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, apiserver.FindSimilarResponse{Status: "error", Error: "invalid JSON"})
+			return
+		}
+
+		// Create response channel if it doesn't exist
+		req.UUID = uuid.New().String()
+		apiserver.MapChannelFindSimilarResponse[req.UUID] = make(chan *apiserver.FindSimilarResponse, 1)
+
+		// Send request to handler
+		apiserver.ChannelFindSimilarRequests <- &req
+
+		// block on response with timeout for response
+		select {
+		case res := <-apiserver.MapChannelFindSimilarResponse[req.UUID]:
+			// response
+			if res.Error == "" {
+				writeJSON(w, http.StatusOK, apiserver.FindSimilarResponse{
+					Status:       res.Status,
+					SimilarTexts: res.SimilarTexts,
+				})
+			} else {
+				writeJSON(w, http.StatusOK, apiserver.FindSimilarResponse{
+					Status: res.Status,
+					Error:  res.Error,
+				})
+			}
+		case <-time.After(5 * time.Second):
+			writeJSON(w, http.StatusOK, apiserver.FindSimilarResponse{Error: "timeout"})
+		}
+		// Clean up the channel
+		delete(apiserver.MapChannelFindSimilarResponse, req.UUID)
 	}
 }
 
@@ -65,6 +106,13 @@ func main() {
 	r.Use(middleware.Timeout(10 * time.Second))
 
 	r.Post("/insert", makeInsertHandler(log))
+	r.Post("/find_similar", makeFindSimilarHandler(log))
+
+	// Initialize API server
+	err := apiserver.Initialize()
+	if err != nil {
+		log.Fatal("failed to initialize API server", zap.Error(err))
+	}
 
 	// server
 	srv := &http.Server{
@@ -75,14 +123,17 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// test insert
-	apiserver.Insert("vibes", "1")
+	// Remove test insert code that was causing immediate exit
+	// apiserver.Insert("test1", "1")
+	apiserver.Insert("test2", "2")
+	// fmt.Println(apiserver.FindSimilar("test2", 3, "3"))
 	os.Exit(1)
 
 	// launch handler routines on apiserver
 	HANDLERS := 100
 	for iIndex := 0; iIndex < HANDLERS; iIndex++ {
 		go apiserver.LaunchHandler()
+		go apiserver.LaunchFindSimilarHandler()
 	}
 
 	// clean shutdown

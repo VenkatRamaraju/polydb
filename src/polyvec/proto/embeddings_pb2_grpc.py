@@ -39,12 +39,23 @@ class EmbeddingsStub(object):
                 request_serializer=embeddings__pb2.EmbeddingsRequest.SerializeToString,
                 response_deserializer=embeddings__pb2.EmbeddingsResponse.FromString,
                 _registered_method=True)
+        self.FindSimilarEmbeddings = channel.unary_unary(
+                '/embeddings.Embeddings/FindSimilarEmbeddings',
+                request_serializer=embeddings__pb2.FindSimilarRequest.SerializeToString,
+                response_deserializer=embeddings__pb2.FindSimilarResponse.FromString,
+                _registered_method=True)
 
 
 class EmbeddingsServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def GenerateEmbeddings(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def FindSimilarEmbeddings(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +68,11 @@ def add_EmbeddingsServicer_to_server(servicer, server):
                     servicer.GenerateEmbeddings,
                     request_deserializer=embeddings__pb2.EmbeddingsRequest.FromString,
                     response_serializer=embeddings__pb2.EmbeddingsResponse.SerializeToString,
+            ),
+            'FindSimilarEmbeddings': grpc.unary_unary_rpc_method_handler(
+                    servicer.FindSimilarEmbeddings,
+                    request_deserializer=embeddings__pb2.FindSimilarRequest.FromString,
+                    response_serializer=embeddings__pb2.FindSimilarResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -86,6 +102,33 @@ class Embeddings(object):
             '/embeddings.Embeddings/GenerateEmbeddings',
             embeddings__pb2.EmbeddingsRequest.SerializeToString,
             embeddings__pb2.EmbeddingsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def FindSimilarEmbeddings(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/embeddings.Embeddings/FindSimilarEmbeddings',
+            embeddings__pb2.FindSimilarRequest.SerializeToString,
+            embeddings__pb2.FindSimilarResponse.FromString,
             options,
             channel_credentials,
             insecure,

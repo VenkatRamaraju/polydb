@@ -133,6 +133,118 @@ func (x *EmbeddingsResponse) GetErrorMessage() string {
 	return ""
 }
 
+type FindSimilarRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TokenIds      []int64                `protobuf:"varint,1,rep,packed,name=token_ids,json=tokenIds,proto3" json:"token_ids,omitempty"` // Token IDs to find similar embeddings for
+	TopK          int32                  `protobuf:"varint,2,opt,name=top_k,json=topK,proto3" json:"top_k,omitempty"`                    // Optional: number of results to return (default: 5)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FindSimilarRequest) Reset() {
+	*x = FindSimilarRequest{}
+	mi := &file_embeddings_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindSimilarRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindSimilarRequest) ProtoMessage() {}
+
+func (x *FindSimilarRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_embeddings_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindSimilarRequest.ProtoReflect.Descriptor instead.
+func (*FindSimilarRequest) Descriptor() ([]byte, []int) {
+	return file_embeddings_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *FindSimilarRequest) GetTokenIds() []int64 {
+	if x != nil {
+		return x.TokenIds
+	}
+	return nil
+}
+
+func (x *FindSimilarRequest) GetTopK() int32 {
+	if x != nil {
+		return x.TopK
+	}
+	return 0
+}
+
+type FindSimilarResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	SimilarTexts  []string               `protobuf:"bytes,2,rep,name=similar_texts,json=similarTexts,proto3" json:"similar_texts,omitempty"` // List of similar text strings
+	ErrorMessage  string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"` // Optional error message if success is false
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FindSimilarResponse) Reset() {
+	*x = FindSimilarResponse{}
+	mi := &file_embeddings_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindSimilarResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindSimilarResponse) ProtoMessage() {}
+
+func (x *FindSimilarResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_embeddings_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindSimilarResponse.ProtoReflect.Descriptor instead.
+func (*FindSimilarResponse) Descriptor() ([]byte, []int) {
+	return file_embeddings_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *FindSimilarResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *FindSimilarResponse) GetSimilarTexts() []string {
+	if x != nil {
+		return x.SimilarTexts
+	}
+	return nil
+}
+
+func (x *FindSimilarResponse) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
 var File_embeddings_proto protoreflect.FileDescriptor
 
 const file_embeddings_proto_rawDesc = "" +
@@ -145,10 +257,18 @@ const file_embeddings_proto_rawDesc = "" +
 	"\x04uuid\x18\x03 \x01(\tR\x04uuid\"S\n" +
 	"\x12EmbeddingsResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12#\n" +
-	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage2a\n" +
+	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\"F\n" +
+	"\x12FindSimilarRequest\x12\x1b\n" +
+	"\ttoken_ids\x18\x01 \x03(\x03R\btokenIds\x12\x13\n" +
+	"\x05top_k\x18\x02 \x01(\x05R\x04topK\"y\n" +
+	"\x13FindSimilarResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12#\n" +
+	"\rsimilar_texts\x18\x02 \x03(\tR\fsimilarTexts\x12#\n" +
+	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage2\xbb\x01\n" +
 	"\n" +
 	"Embeddings\x12S\n" +
-	"\x12GenerateEmbeddings\x12\x1d.embeddings.EmbeddingsRequest\x1a\x1e.embeddings.EmbeddingsResponseB\x10Z\x0e./embeddingspbb\x06proto3"
+	"\x12GenerateEmbeddings\x12\x1d.embeddings.EmbeddingsRequest\x1a\x1e.embeddings.EmbeddingsResponse\x12X\n" +
+	"\x15FindSimilarEmbeddings\x12\x1e.embeddings.FindSimilarRequest\x1a\x1f.embeddings.FindSimilarResponseB\x10Z\x0e./embeddingspbb\x06proto3"
 
 var (
 	file_embeddings_proto_rawDescOnce sync.Once
@@ -162,16 +282,20 @@ func file_embeddings_proto_rawDescGZIP() []byte {
 	return file_embeddings_proto_rawDescData
 }
 
-var file_embeddings_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_embeddings_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_embeddings_proto_goTypes = []any{
-	(*EmbeddingsRequest)(nil),  // 0: embeddings.EmbeddingsRequest
-	(*EmbeddingsResponse)(nil), // 1: embeddings.EmbeddingsResponse
+	(*EmbeddingsRequest)(nil),   // 0: embeddings.EmbeddingsRequest
+	(*EmbeddingsResponse)(nil),  // 1: embeddings.EmbeddingsResponse
+	(*FindSimilarRequest)(nil),  // 2: embeddings.FindSimilarRequest
+	(*FindSimilarResponse)(nil), // 3: embeddings.FindSimilarResponse
 }
 var file_embeddings_proto_depIdxs = []int32{
 	0, // 0: embeddings.Embeddings.GenerateEmbeddings:input_type -> embeddings.EmbeddingsRequest
-	1, // 1: embeddings.Embeddings.GenerateEmbeddings:output_type -> embeddings.EmbeddingsResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: embeddings.Embeddings.FindSimilarEmbeddings:input_type -> embeddings.FindSimilarRequest
+	1, // 2: embeddings.Embeddings.GenerateEmbeddings:output_type -> embeddings.EmbeddingsResponse
+	3, // 3: embeddings.Embeddings.FindSimilarEmbeddings:output_type -> embeddings.FindSimilarResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -188,7 +312,7 @@ func file_embeddings_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_embeddings_proto_rawDesc), len(file_embeddings_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

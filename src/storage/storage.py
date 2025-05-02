@@ -7,24 +7,24 @@ import sys
 import torch
 
 # Define base path
-BASE_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(BASE_DIRECTORY)
+BASE_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'polyvec')))
+sys.path.append(BASE_DIRECTORY)
 
 from polyvec.train.embeddings import generate_embeddings
 
 # Paths
-INDEX_PATH = BASE_DIRECTORY + "/storage/faiss.index"
-METADATA_PATH = BASE_DIRECTORY + "/storage/metadata.pkl"
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+INDEX_PATH = BASE_DIRECTORY + "/artifacts/faiss.index"
+METADATA_PATH = BASE_DIRECTORY + "/artifacts/metadata.pkl"
 
 # Initialize index and metadata
 if os.path.exists(INDEX_PATH):
     index = faiss.read_index(INDEX_PATH)
 else:
     # IndexIDMap so that we can store UUID mappings
-    dimension = 300 
-    index = faiss.IndexIDMap(faiss.IndexFlatL2(dimension))
+    DIMENSION = 300
+    index = faiss.IndexIDMap(faiss.IndexFlatL2(DIMENSION))
 
 # Initialize metadata
 if os.path.exists(METADATA_PATH):
@@ -48,6 +48,9 @@ def hash(text):
 
 # Insert new embeddings
 def insert_embedding(text, embeddings, uuid):
+    # Convert to correct dimension with mean pooling
+    embeddings = embeddings.mean(axis=0)
+
     # Convert PyTorch tensor to NumPy array if needed
     if isinstance(embeddings, torch.Tensor):
         embeddings = embeddings.detach().cpu().numpy()
@@ -57,6 +60,7 @@ def insert_embedding(text, embeddings, uuid):
 
     # Store embeddings in a persistent index using FAISS
     uuid_int = hash(uuid)
+    print("the uuid i generated for", uuid, "is", uuid_int)
     
     # Add to index
     index.add_with_ids(embeddings, np.array([uuid_int], dtype=np.int64))
@@ -68,10 +72,13 @@ def insert_embedding(text, embeddings, uuid):
     persist()
 
 
-def find_similar_vectors(query_embedding, top_k=5):
+def find_similar_embeddings(query_embedding, top_k=5):
     # Convert PyTorch tensor to NumPy array if needed
     if isinstance(query_embedding, torch.Tensor):
         query_embedding = query_embedding.detach().cpu().numpy()
+
+    # Convert to correct dimension with mean pooling
+    query_embedding = query_embedding.mean(axis=0)
 
     # Reshape for search
     query_vector = query_embedding.astype(np.float32).reshape(1, -1)
@@ -80,4 +87,5 @@ def find_similar_vectors(query_embedding, top_k=5):
     _, ids = index.search(query_vector, top_k)
 
     # Return texts from mapping
+    print(ids)
     return [metadata[id] for id in ids[0] if id != -1]
