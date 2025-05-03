@@ -123,12 +123,6 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Remove test insert code that was causing immediate exit
-	// apiserver.Insert("test1", "1")
-	apiserver.Insert("test2", "2")
-	// fmt.Println(apiserver.FindSimilar("test2", 3, "3"))
-	os.Exit(1)
-
 	// launch handler routines on apiserver
 	HANDLERS := 100
 	for iIndex := 0; iIndex < HANDLERS; iIndex++ {

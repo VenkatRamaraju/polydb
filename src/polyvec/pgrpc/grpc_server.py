@@ -67,16 +67,24 @@ class EmbeddingsServicer(embeddings_pb2_grpc.EmbeddingsServicer):
             
             # Find similar embeddings using the existing function
             similar_texts = find_similar_embeddings(query_embedding, top_k=top_k)
-
-            print(similar_texts)
             
             # Create and return a proper response protobuf object
             response = embeddings_pb2.FindSimilarResponse()
             response.success = True
-            response.similar_texts = similar_texts
+            
+            # Handle the case when similar_texts is None or empty
+            if similar_texts is None or len(similar_texts) == 0:
+                print("No similar texts found, returning empty list")
+                # Don't set similar_texts field if empty
+            else:
+                # Make sure similar_texts is actually a list of strings
+                string_texts = [str(text) for text in similar_texts]
+                response.similar_texts.extend(string_texts)  # Use extend instead of assignment
+            
             return response
         except Exception as e:
             error_msg = f"Error finding similar embeddings: {str(e)}"
+            print(f"Exception in FindSimilarEmbeddings: {error_msg}")
             response = embeddings_pb2.FindSimilarResponse()
             response.success = False
             response.error_message = error_msg

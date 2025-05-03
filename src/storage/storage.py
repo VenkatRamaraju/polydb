@@ -2,9 +2,9 @@ import faiss
 import pickle
 import os
 import numpy as np
-import hashlib
 import sys
 import torch
+import uuid
 
 # Define base path
 BASE_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -40,14 +40,20 @@ def persist():
     
     # Save index
     faiss.write_index(index, INDEX_PATH)
-    print(f"Saved index to {INDEX_PATH}")
 
-# Hash
-def hash(text):
-    return int.from_bytes(hashlib.sha256(text.encode()).digest()[:8], 'big')
+# Convert UUID string to a positive integer (compatible with FAISS)
+def uuid_to_int(uuid_str):
+    # Parse UUID string to UUID object if it's not already one
+    if isinstance(uuid_str, str):
+        uuid_obj = uuid.UUID(uuid_str)
+    else:
+        uuid_obj = uuid_str
+        
+    # Take the first 31 bits (to ensure it's a positive int within C long range)
+    return uuid_obj.int & 0x7FFFFFFF
 
 # Insert new embeddings
-def insert_embedding(text, embeddings, uuid):
+def insert_embedding(text, embeddings, uuid_str):
     # Convert to correct dimension with mean pooling
     embeddings = embeddings.mean(axis=0)
 
@@ -59,8 +65,7 @@ def insert_embedding(text, embeddings, uuid):
     embeddings = embeddings.astype(np.float32).reshape(1, -1)
 
     # Store embeddings in a persistent index using FAISS
-    uuid_int = hash(uuid)
-    print("the uuid i generated for", uuid, "is", uuid_int)
+    uuid_int = uuid_to_int(uuid_str)
     
     # Add to index
     index.add_with_ids(embeddings, np.array([uuid_int], dtype=np.int64))
@@ -87,5 +92,4 @@ def find_similar_embeddings(query_embedding, top_k=5):
     _, ids = index.search(query_vector, top_k)
 
     # Return texts from mapping
-    print(ids)
     return [metadata[id] for id in ids[0] if id != -1]
