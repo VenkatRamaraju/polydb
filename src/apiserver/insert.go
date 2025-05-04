@@ -18,6 +18,9 @@ var MapChannelResponse = make(map[string](chan *InsertResponse))
 // map for calculating insertions
 var MapMerges map[string]interface{}
 
+// embedding client
+var embClient *agrpc.Client
+
 // structs for state maintenance
 type InsertRequest struct {
 	Text string `json:"text"`
@@ -51,6 +54,12 @@ func Initialize() error {
 		return fmt.Errorf("failed to decode merges map: %w", err)
 	}
 
+	// Connect to embeddings service
+	embClient, err = agrpc.NewClient()
+	if err != nil {
+		return fmt.Errorf("failed to initialize embedding client: %w", err)
+	}
+
 	return nil
 }
 
@@ -62,20 +71,13 @@ func Insert(sText string, sUUID string) *InsertResponse {
 		return &InsertResponse{Status: "error", Error: err.Error()}
 	}
 
-	// Connect to embeddings service
-	embClient, err := agrpc.NewClient()
-	if err != nil {
-		return &InsertResponse{Status: "error", Error: fmt.Sprintf("Failed to connect to embeddings service: %v", err)}
-	}
-	defer embClient.Close()
-
 	// Generate embeddings using gRPC
 	err = embClient.GenerateEmbeddings(sText, alTokens, sUUID)
 	if err != nil {
 		return &InsertResponse{Status: "error", Error: fmt.Sprintf("Failed to generate embeddings: %v", err)}
 	}
 
-	return nil
+	return &InsertResponse{Status: "ok"}
 }
 
 // process requests

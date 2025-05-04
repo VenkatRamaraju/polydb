@@ -5,6 +5,7 @@ import (
 	"apiserver"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +17,31 @@ import (
 	"go.uber.org/zap"
 )
 
+// displayBanner prints the PolyDB ASCII art and description to the console
+func displayBanner() {
+	banner := `
+ ██████╗   ██████╗  ██╗   ██╗   ██╗ ██████╗  ██████╗  
+ ██╔══██╗ ██╔═══██╗ ██║   ╚██╗ ██╔╝ ██╔══██╗ ██╔══██╗ 
+ ██████╔╝ ██║   ██║ ██║    ╚████╔╝  ██║  ██║ ██████╔╝ 
+ ██╔═══╝  ██║   ██║ ██║     ╚██╔╝   ██║  ██║ ██╔══██╗ 
+ ██║      ╚██████╔╝ ███████╗ ██║    ██████╔╝ ██████╔╝ 
+ ╚═╝       ╚═════╝  ╚══════╝ ╚═╝    ╚═════╝  ╚═════╝  
+                                                       
+   Vector Database
+ ================================================================
+
+    • Built from scratch with Go and Python
+    • Strong multilingual tokenizer with > 3.0 compression across 10 unique scripts
+    • Embedding model trained from scratch via Skip-Gram with Negative Sampling
+    • High-performance vector operations using FAISS
+    • Cross-language communication via GPRC
+
+    Version: 1.0.0
+    Starting server...
+`
+	fmt.Println(banner)
+}
+
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	// write to response body
 	w.Header().Set("Content-Type", "application/json")
@@ -25,6 +51,9 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 
 func makeInsertHandler(og *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Log the request
+		og.Info("Received request", zap.String("method", r.Method), zap.String("url", r.URL.String()))
+
 		// parse request
 		var req apiserver.InsertRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -34,6 +63,9 @@ func makeInsertHandler(og *zap.Logger) http.HandlerFunc {
 
 		// insert request into channel
 		req.UUID = uuid.New().String()
+
+		// Create response channel first
+		apiserver.MapChannelResponse[req.UUID] = make(chan *apiserver.InsertResponse, 1)
 		apiserver.ChannelInsertRequests <- &req
 
 		// block on response with timeout for response
@@ -55,6 +87,9 @@ func makeInsertHandler(og *zap.Logger) http.HandlerFunc {
 
 func makeFindSimilarHandler(og *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Log the request
+		og.Info("Received request", zap.String("method", r.Method), zap.String("url", r.URL.String()))
+
 		// parse request
 		var req apiserver.FindSimilarRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -94,6 +129,9 @@ func makeFindSimilarHandler(og *zap.Logger) http.HandlerFunc {
 
 // Orchestrate
 func main() {
+	// Display the PolyDB banner
+	displayBanner()
+
 	// logging
 	log, _ := zap.NewProduction()
 	defer log.Sync()
