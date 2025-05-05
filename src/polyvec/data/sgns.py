@@ -1,4 +1,4 @@
-from util import fetch_data_from_s3, upload_to_s3, get_vocab_size
+from .util import fetch_data_from_s3, upload_to_s3, get_vocab_size
 import requests
 from collections import Counter
 import numpy as np
@@ -12,6 +12,8 @@ import requests
 import time
 import grpc
 import sys
+from tqdm import tqdm
+from datetime import datetime
 
 # Sys path
 PROTO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'proto'))
@@ -45,9 +47,9 @@ def sample_negatives(k, vocab_size, sampling_probs, forbidden):
     return negatives
 
 
-def process_chunk(chunk, chunk_index, vocab_size, neg_sampling_probs, window_size, negative_sample_size):
+def process_chunk(chunk, file_name, vocab_size, neg_sampling_probs, window_size, negative_sample_size):
     token_pairs = []
-    for tokens in chunk:
+    for tokens in tqdm(chunk):
         # Build window
         each_side = window_size // 2
 
@@ -80,7 +82,6 @@ def process_chunk(chunk, chunk_index, vocab_size, neg_sampling_probs, window_siz
                 token_pairs.append((token, context_token, negative_samples))
 
     # Upload to s3
-    file_name = "chunk_" + str(chunk_index) + ".pt"
     upload_to_s3(token_pairs, file_name)
 
 
@@ -106,9 +107,9 @@ def process_sentence(sentence):
 
 def generate_sgns_pairs(start_idx, end_idx):
     # Grab data
-    start = time.time()
+    start_time = time.time()
     sentences = fetch_data_from_s3("tknzr", start_idx, end_idx)
-    print("Done grabbing data from S3", time.time() - start)
+    print("Done grabbing data from S3", time.time() - start_time)
 
     # Process sentences in parallel
     token_freqs = Counter()
@@ -120,7 +121,7 @@ def generate_sgns_pairs(start_idx, end_idx):
             if tokens:
                 token_list.append(tokens)
 
-    print("Done getting tokens", time.time() - start)
+    print("Done getting tokens", time.time() - start_time)
 
     # Get frequencies
     token_freqs = Counter()
@@ -144,11 +145,10 @@ def generate_sgns_pairs(start_idx, end_idx):
     # Iterate through sentences in chunks
     window_size = 5
     negative_sample_size = 15
-    chunk_size = 10
-
-    print("Ready to start processing chunks", time.time() - start)
+    chunk_size = 10000
 
     # Use ThreadPoolExecutor for parallel processing
+    print("Ready to start processing chunks", time.time() - start_time)
     print("Total token list size", len(token_list))
     print("Batch size", len(token_list) // chunk_size)
 
@@ -156,11 +156,19 @@ def generate_sgns_pairs(start_idx, end_idx):
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for chunk_index in range(0, len(token_list), chunk_size):
+            # Get a single chunk
             chunk = token_list[chunk_index:chunk_index + chunk_size]
-            print("Chunk index", chunk_index // chunk_size)
-            futures.append(executor.submit(process_chunk, chunk, start + (chunk_index // chunk_size), vocab_size, neg_sampling_probs, window_size, negative_sample_size))
 
-        # Wait for all futures to complete
-        concurrent.futures.wait(futures)
+            # Inside your function where you define the file_name
+            current_time = datetime.now().strftime("%Y%m%d%H%M%S")  # Format: YYYYMMDDHHMMSS
+            print("Chunk number", chunk_index // chunk_size)
+            file_name = f"{start_idx}_{chunk_index // chunk_size}_{current_time}.pt"
+            futures.append(executor.submit(process_chunk, chunk, file_name, vocab_size, neg_sampling_probs, window_size, negative_sample_size))
+
+        # Wait for all futures to complete with progress tracking
+        with tqdm(total=len(futures), desc="Processing chunks") as pbar:
+            for future in concurrent.futures.as_completed(futures):
+                future.result()  # Get the result to catch any exceptions
+                pbar.update(1)
     
-    print("Done processing chunks", time.time() - start)
+    print("Done processing chunks", time.time() - start_time)

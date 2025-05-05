@@ -46,7 +46,7 @@ def fetch_data_from_s3(bucket_name, start: int, end: int):
             
             # Add just the sentences
             for language in data.keys():
-                data_list.extend(data[language][:3])
+                data_list.extend(data[language])
         except json.JSONDecodeError:
             print(f"Error decoding JSON from {file_key}")
 

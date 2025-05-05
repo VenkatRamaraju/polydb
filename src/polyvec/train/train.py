@@ -87,10 +87,10 @@ class SGNSModel(nn.Module):
 
 def train(start_idx, end_idx):    
     # If you need to generate dataset first - if data is present, leave commented out
-    # start = time.time()
-    # generate_sgns_pairs(start_idx, end_idx)
-    # print("Done generating SGNS data", time.time() - start)
-    # exit(1)
+    start = time.time()
+    generate_sgns_pairs(start_idx, end_idx)
+    print("Done generating SGNS data", time.time() - start)
+    exit(1)
 
     # Get vocab size
     vocab_size = get_vocab_size()

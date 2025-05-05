@@ -38,10 +38,7 @@ func main() {
 
 		// start server
 		go func() {
-			if err := tgrpc.Startcd /Users/venkyramaraju/Documents/Studies/Learning/nn/polydb/src/polyvec/proto
-			protoc --go_out=. --go_opt=paths=source_relative \
-				--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-				embeddings.protoServer(vocab); err != nil {
+			if err := tgrpc.StartServer(vocab); err != nil {
 				log.Fatalf("gRPC server failed: %v", err)
 			}
 		}()
