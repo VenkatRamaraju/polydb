@@ -112,9 +112,11 @@ def generate_sgns_pairs(start_idx, end_idx):
     print("Done grabbing data from S3", time.time() - start_time)
 
     # Process sentences in parallel
+    cpu_cores = os.cpu_count()
+    max_workers = max(1, int(cpu_cores * 0.75))
     token_freqs = Counter()
     token_list = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(process_sentence, sentence): sentence for sentence in sentences}
         for future in concurrent.futures.as_completed(futures):
             tokens = future.result()
