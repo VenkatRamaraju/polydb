@@ -90,12 +90,7 @@ def process_sentence(sentence):
     for attempt in range(max_retries):
         try:
             response = client.encode(sentence)
-
-            tokens = response.tokens
-            if not tokens:
-                print("Unprocessable request:", sentence, response)
-            return tokens
-        
+            return response.tokens
         except grpc.RpcError as e:
             print(f"Attempt {attempt + 1}: gRPC call failed with exception: {e}")
         
@@ -116,12 +111,14 @@ def generate_sgns_pairs(start_idx, end_idx):
     max_workers = max(1, int(cpu_cores * 0.75))
     token_freqs = Counter()
     token_list = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {executor.submit(process_sentence, sentence): sentence for sentence in sentences}
-        for future in concurrent.futures.as_completed(futures):
-            tokens = future.result()
-            if tokens:
-                token_list.append(tokens)
+        with tqdm(total=len(futures), desc="Processing sentences") as pbar:
+            for future in concurrent.futures.as_completed(futures):
+                tokens = future.result()
+                if tokens:
+                    token_list.append(tokens)
+                pbar.update(1)
 
     print("Done getting tokens", time.time() - start_time)
 
@@ -155,15 +152,17 @@ def generate_sgns_pairs(start_idx, end_idx):
     print("Batch size", len(token_list) // chunk_size)
 
     # Process chunks in parallel
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    cpu_cores = os.cpu_count()
+    max_workers = max(1, int(cpu_cores * 0.75))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for chunk_index in range(0, len(token_list), chunk_size):
             # Get a single chunk
             chunk = token_list[chunk_index:chunk_index + chunk_size]
 
             # Inside your function where you define the file_name
-            current_time = datetime.now().strftime("%Y%m%d%H%M%S")  # Format: YYYYMMDDHHMMSS
-            print("Chunk number", chunk_index // chunk_size)
+            current_time = datetime.now().strftime("%Y%m%d%H%M%S")
+            # print("Chunk number", chunk_index // chunk_size)
             file_name = f"{start_idx}_{chunk_index // chunk_size}_{current_time}.pt"
             futures.append(executor.submit(process_chunk, chunk, file_name, vocab_size, neg_sampling_probs, window_size, negative_sample_size))
 

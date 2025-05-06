@@ -1,5 +1,6 @@
 import os
 import sys
+from tqdm import tqdm
 
 # Define the base directory for the project
 DATA_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -87,10 +88,10 @@ class SGNSModel(nn.Module):
 
 def train(start_idx, end_idx):    
     # If you need to generate dataset first - if data is present, leave commented out
-    start = time.time()
-    generate_sgns_pairs(start_idx, end_idx)
-    print("Done generating SGNS data", time.time() - start)
-    exit(1)
+    # start = time.time()
+    # generate_sgns_pairs(start_idx, end_idx)
+    # print("Done generating SGNS data", time.time() - start)
+    # exit(1)
 
     # Get vocab size
     vocab_size = get_vocab_size()
@@ -121,10 +122,10 @@ def train(start_idx, end_idx):
 
     # Start training loop
     epochs = 5
-    for i in range(epochs):
+    for i in tqdm(range(epochs), desc="Training epochs"):
         total_loss = 0.0
         count = 0
-        for center, context, negatives in dataloader:
+        for center, context, negatives in tqdm(dataloader, desc=f"Epoch {i+1}/{epochs}", leave=False):
             # Convert
             center = center.to(device).long()
             context = context.to(device).long()
@@ -147,7 +148,7 @@ def train(start_idx, end_idx):
             count += 1
         
         # Print statistics for this epoch
-        print("Epoch:", i)
+        print(f"Epoch: {i+1}/{epochs}")
         print("Average Loss:", total_loss / count)
         print("Elapsed:", time.time() - start)
         print("*" * 100)
