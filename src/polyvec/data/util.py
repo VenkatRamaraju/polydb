@@ -46,7 +46,7 @@ def fetch_data_from_s3(bucket_name, start: int, end: int):
             
             # Add just the sentences
             for language in data.keys():
-                data_list.extend(data[language])
+                data_list.extend(data[language][:3])
         except json.JSONDecodeError:
             print(f"Error decoding JSON from {file_key}")
 
@@ -60,7 +60,7 @@ def upload_to_s3(pair, file_name):
 
     try:
         # Upload file name
-        s3_client.upload_fileobj(buffer, "sgns-pairs-beta", file_name)
+        s3_client.upload_fileobj(buffer, "sgns-pairs", file_name)
     except Exception as err:
         print("Unable to upload to s3:", str(err))
 
@@ -86,7 +86,7 @@ def get_vocab_size():
         print(f"Error reading merges.json: {err}")
         return None
 
-def list_s3_pt_files(bucket_name='sgns-pairs-beta'):
+def list_s3_pt_files(bucket_name='sgns-pairs'):
     # List all objects in the bucket
     files = []
     paginator = s3_client.get_paginator('list_objects_v2')

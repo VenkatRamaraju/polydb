@@ -82,25 +82,27 @@ class SGNSModel(nn.Module):
         # Dot product for (center, negatives) --> Unsqueeze then squeeze to make dimensions match
         negative_affinity = torch.bmm(negative_embeddings, torch.unsqueeze(center_embedding, 2)).squeeze(2)
 
-        # Calculate and return loss
+        # Policy
         return -F.logsigmoid(context_affinity).mean() - F.logsigmoid(-negative_affinity).mean()
 
 
 def train(start_idx, end_idx):    
     # If you need to generate dataset first - if data is present, leave commented out
-    # start = time.time()
-    # generate_sgns_pairs(start_idx, end_idx)
-    # print("Done generating SGNS data", time.time() - start)
-    # exit(1)
+    start = time.time()
+    generate_sgns_pairs(start_idx, end_idx)
+    print("Done generating SGNS data", time.time() - start)
+    exit(1)
 
     # Get vocab size
     vocab_size = get_vocab_size()
 
     # Set the S3 bucket name containing the .pt files
-    s3_bucket_name = 'sgns-pairs-beta'
+    s3_bucket_name = 'sgns-pairs'
 
     # List all .pt files in the S3 bucket
     s3_files = list_s3_pt_files(s3_bucket_name)
+    print(s3_files)
+    exit(1)
 
     # Set up dataset
     dataset = StreamingSGNSDataset(s3_files, s3_bucket_name)
