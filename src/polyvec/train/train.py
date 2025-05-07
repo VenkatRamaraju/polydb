@@ -88,10 +88,10 @@ class SGNSModel(nn.Module):
 
 def train(start_idx, end_idx):    
     # If you need to generate dataset first - if data is present, leave commented out
-    start = time.time()
-    generate_sgns_pairs(start_idx, end_idx)
-    print("Done generating SGNS data", time.time() - start)
-    exit(1)
+    # start = time.time()
+    # generate_sgns_pairs(start_idx, end_idx)
+    # print("Done generating SGNS data", time.time() - start)
+    # exit(1)
 
     # Get vocab size
     vocab_size = get_vocab_size()
@@ -101,15 +101,15 @@ def train(start_idx, end_idx):
 
     # List all .pt files in the S3 bucket
     s3_files = list_s3_pt_files(s3_bucket_name)
-    print(s3_files)
-    exit(1)
 
     # Set up dataset
     dataset = StreamingSGNSDataset(s3_files, s3_bucket_name)
+    cpu_cores = os.cpu_count()
+    max_workers = max(1, int(cpu_cores * 0.9))
     dataloader = DataLoader(
         dataset,
         batch_size=512,
-        num_workers=4,
+        num_workers=max_workers,
     )
 
     # Initialize model and optimizer
