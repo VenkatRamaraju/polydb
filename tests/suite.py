@@ -24,6 +24,50 @@ class PolyDBAPITest(unittest.TestCase):
         "Cloud computing provides on-demand computing resources"
     ]
     
+    # Multilingual sample texts
+    MULTILINGUAL_TEXTS = {
+        "English": {
+            "original": "Machine learning enables computers to learn from data and improve over time",
+            "query": "computers learning from data"
+        },
+        "Hebrew": {
+            "original": "למידת מכונה מאפשרת למחשבים ללמוד מנתונים ולהשתפר עם הזמן",
+            "query": "מחשבים לומדים מנתונים"
+        },
+        "Bengali": {
+            "original": "মেশিন লার্নিং কম্পিউটারগুলিকে ডেটা থেকে শিখতে এবং সময়ের সাথে উন্নত করতে সক্ষম করে",
+            "query": "কম্পিউটার ডেটা থেকে শেখা"
+        },
+        "Vietnamese": {
+            "original": "Học máy cho phép máy tính học từ dữ liệu và cải thiện theo thời gian",
+            "query": "máy tính học từ dữ liệu"
+        },
+        "Korean": {
+            "original": "머신 러닝은 컴퓨터가 데이터에서 학습하고 시간이 지남에 따라 개선되도록 합니다",
+            "query": "컴퓨터 데이터 학습"
+        },
+        "Arabic": {
+            "original": "يتيح التعلم الآلي للحواسيب التعلم من البيانات والتحسن بمرور الوقت",
+            "query": "الحواسيب تتعلم من البيانات"
+        },
+        "Russian": {
+            "original": "Машинное обучение позволяет компьютерам учиться на данных и улучшаться со временем",
+            "query": "компьютеры учатся на данных"
+        },
+        "Thai": {
+            "original": "การเรียนรู้ของเครื่องช่วยให้คอมพิวเตอร์เรียนรู้จากข้อมูลและปรับปรุงเมื่อเวลาผ่านไป",
+            "query": "คอมพิวเตอร์เรียนรู้จากข้อมูล"
+        },
+        "Chinese": {
+            "original": "机器学习使计算机能够从数据中学习并随着时间推移而改进",
+            "query": "计算机从数据中学习"
+        },
+        "Japanese": {
+            "original": "機械学習により、コンピューターはデータから学習し、時間とともに改善することができます",
+            "query": "コンピューターがデータから学習する"
+        }
+    }
+    
     def test_01_insert_single_text(self):
         """Test inserting a single text into the database"""
         text = "This is a test document for insertion"
@@ -129,6 +173,74 @@ class PolyDBAPITest(unittest.TestCase):
                     break
             
             self.assertTrue(found, f"Could not retrieve random text with query: {query}")
+    
+    def test_06_multilingual_support(self):
+        """Test inserting and searching texts in multiple languages"""
+        print("\nTesting multilingual support for the following languages:")
+        for lang in self.MULTILINGUAL_TEXTS.keys():
+            print(f"- {lang}")
+        
+        # Insert all multilingual texts
+        for lang, text_data in self.MULTILINGUAL_TEXTS.items():
+            print(f"\nProcessing {lang} text...")
+            original_text = text_data["original"]
+            response = self._insert_text(original_text)
+            
+            self.assertEqual(response.status_code, 200, f"Failed to insert {lang} text")
+            data = response.json()
+            self.assertEqual(data["status"], "ok", 
+                           f"Failed to insert {lang} text: {data.get('error', 'Unknown error')}")
+        
+        # Allow time for processing - multilingual texts may need more processing time
+        print("Waiting for processing to complete...")
+        time.sleep(5)
+        
+        # Search for each language with its corresponding query
+        for lang, text_data in self.MULTILINGUAL_TEXTS.items():
+            print(f"\nSearching for {lang} text with query: {text_data['query']}")
+            original_text = text_data["original"]
+            query_text = text_data["query"]
+            
+            response = self._find_similar(query_text, 10)
+            self.assertEqual(response.status_code, 200, f"Failed search for {lang}")
+            data = response.json()
+            self.assertEqual(data["status"], "ok", 
+                           f"Failed to search {lang}: {data.get('error', 'Unknown error')}")
+            
+            # Check if the original text is in the results
+            self.assertIn(original_text, data["similar_texts"], 
+                         f"{lang} text not found in search results")
+            print(f"✓ {lang} text successfully retrieved")
+    
+    def test_07_cross_language_search(self):
+        """Test searching across different languages"""
+        # Define cross-language search pairs (query language -> target language)
+        cross_language_pairs = [
+            ("English", "Arabic"),
+            ("Japanese", "Chinese"),
+            ("Russian", "English"),
+            ("Korean", "Vietnamese")
+        ]
+        
+        print("\nTesting cross-language search capabilities...")
+        for query_lang, target_lang in cross_language_pairs:
+            print(f"\nSearching with {query_lang} query for {target_lang} content...")
+            
+            # Use the query from one language to search for content in another language
+            query_text = self.MULTILINGUAL_TEXTS[query_lang]["query"]
+            target_text = self.MULTILINGUAL_TEXTS[target_lang]["original"]
+            
+            # Perform the search with a higher top_k to increase chances of finding cross-language matches
+            response = self._find_similar(query_text, 20)
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            
+            # Note: This test is informational rather than a strict pass/fail
+            # It's testing the model's cross-language capabilities
+            if target_text in data["similar_texts"]:
+                print(f"✓ Successfully found {target_lang} content with {query_lang} query")
+            else:
+                print(f"ℹ {target_lang} content not found with {query_lang} query - this may be normal depending on the embedding model's cross-lingual capabilities")
     
     def _insert_text(self, text):
         """Helper method to insert text into the database"""

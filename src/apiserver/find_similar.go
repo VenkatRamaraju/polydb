@@ -3,6 +3,7 @@ package apiserver
 import (
 	"agrpc"
 	"bpe"
+	b64 "encoding/base64"
 	"fmt"
 )
 
@@ -52,8 +53,18 @@ func FindSimilar(sText string, topK int32, sUUID string) *FindSimilarResponse {
 		return &FindSimilarResponse{Status: "error", Error: fmt.Sprintf("Failed to find similar embeddings: %v", err)}
 	}
 
+	// base 64 decode every string
+	var asSimilarTextsDecoded []string
+	for _, sEncodedText := range similarTexts {
+		abDecoded, err := b64.StdEncoding.DecodeString(sEncodedText)
+		if err != nil {
+			return &FindSimilarResponse{Status: "error", Error: fmt.Sprintf("Unable to decode string: %v", err)}
+		}
+		asSimilarTextsDecoded = append(asSimilarTextsDecoded, string(abDecoded))
+	}
+
 	return &FindSimilarResponse{
-		SimilarTexts: similarTexts,
+		SimilarTexts: asSimilarTextsDecoded,
 		Status:       "ok",
 	}
 }

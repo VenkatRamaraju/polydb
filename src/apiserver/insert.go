@@ -3,6 +3,7 @@ package apiserver
 import (
 	"agrpc"
 	"bpe"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -71,8 +72,11 @@ func Insert(sText string, sUUID string) *InsertResponse {
 		return &InsertResponse{Status: "error", Error: err.Error()}
 	}
 
+	// base 64 encode the text
+	sEncodedText := base64.StdEncoding.EncodeToString([]byte(sText))
+
 	// Generate embeddings using gRPC
-	err = embClient.GenerateEmbeddings(sText, alTokens, sUUID)
+	err = embClient.GenerateEmbeddings(sEncodedText, alTokens, sUUID)
 	if err != nil {
 		return &InsertResponse{Status: "error", Error: fmt.Sprintf("Failed to generate embeddings: %v", err)}
 	}

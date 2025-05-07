@@ -1,4 +1,3 @@
-from .util import fetch_data_from_s3, upload_to_s3, get_vocab_size
 import requests
 from collections import Counter
 import numpy as np
@@ -16,9 +15,9 @@ from tqdm import tqdm
 from datetime import datetime
 
 # Sys path
-PROTO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'proto'))
-sys.path.append(PROTO)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'proto')))
 
+from util import fetch_data_from_s3, upload_to_s3, get_vocab_size
 import tokenizerpb.tokenizer_pb2 as tokenizer_pb2
 import tokenizerpb.tokenizer_pb2_grpc as tokenizer_pb2_grpc
 
