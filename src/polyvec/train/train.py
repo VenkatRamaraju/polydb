@@ -108,8 +108,10 @@ def train(start_idx, end_idx):
     max_workers = max(1, int(cpu_cores * 0.9))
     dataloader = DataLoader(
         dataset,
-        batch_size=512,
+        batch_size=128,
         num_workers=max_workers,
+        pin_memory=True,  # Speeds up host to GPU transfers
+        prefetch_factor=2,  # Prefetch ahead to keep GPU fed
     )
 
     # Initialize model and optimizer
@@ -124,10 +126,20 @@ def train(start_idx, end_idx):
 
     # Start training loop
     epochs = 5
+    
+    # Track overall progress
+    total_files = len(dataloader.dataset.s3_files) if hasattr(dataloader.dataset, 's3_files') else "unknown"
+    processed_files = set()
+    
     for i in tqdm(range(epochs), desc="Training epochs"):
         total_loss = 0.0
         count = 0
-        for center, context, negatives in tqdm(dataloader, desc=f"Epoch {i+1}/{epochs}", leave=False):
+        
+        for batch_idx, (center, context, negatives) in enumerate(tqdm(dataloader, desc=f"Epoch {i+1}/{epochs}", leave=False)):
+            # Display batch progress periodically
+            if batch_idx % 50 == 0:
+                print(f"Processed {batch_idx} batches so far in this epoch")
+            
             # Convert
             center = center.to(device).long()
             context = context.to(device).long()
@@ -152,6 +164,7 @@ def train(start_idx, end_idx):
         # Print statistics for this epoch
         print(f"Epoch: {i+1}/{epochs}")
         print("Average Loss:", total_loss / count)
+        print(f"Files processed: {len(processed_files)}/{total_files}")
         print("Elapsed:", time.time() - start)
         print("*" * 100)
 
