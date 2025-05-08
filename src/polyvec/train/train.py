@@ -137,7 +137,7 @@ def train(start_idx, end_idx):
         
         for batch_idx, (center, context, negatives) in enumerate(tqdm(dataloader, desc=f"Epoch {i+1}/{epochs}", leave=False)):
             # Display batch progress periodically
-            if batch_idx % 50 == 0:
+            if batch_idx % 2000 == 0:
                 print(f"Processed {batch_idx} batches so far in this epoch")
             
             # Convert
