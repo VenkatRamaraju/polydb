@@ -86,6 +86,7 @@ func Insert(sText string, sUUID string) *InsertResponse {
 
 // process requests
 func LaunchHandler() {
+	// continuously wait for requests
 	for job := range ChannelInsertRequests {
 		// call function
 		response := Insert(job.Text, job.UUID)

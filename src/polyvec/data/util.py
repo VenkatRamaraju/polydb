@@ -18,10 +18,8 @@ s3_client = boto3.client(
     aws_secret_access_key=aws_secret_access_key
 )
 
+# Fetch data from S3
 def fetch_data_from_s3(bucket_name, start: int, end: int):
-    """
-    Fetch all files from the specified S3 bucket and return their contents in a list.
-    """    
     # List all objects in the bucket
     response = s3_client.list_objects_v2(Bucket=bucket_name)
     
@@ -31,7 +29,7 @@ def fetch_data_from_s3(bucket_name, start: int, end: int):
     file_keys = [obj['Key'] for obj in response['Contents']]
     data_list = []
 
-    # Get 10 elements
+    # Get a set of files
     file_keys.sort()
     file_keys = file_keys[start:end]
 
@@ -52,6 +50,7 @@ def fetch_data_from_s3(bucket_name, start: int, end: int):
 
     return data_list
 
+# Upload a file to a specific S3 bucket
 def upload_to_s3(pair, file_name):
     # Load into buffer
     buffer = io.BytesIO()
@@ -64,7 +63,7 @@ def upload_to_s3(pair, file_name):
     except Exception as err:
         print("Unable to upload to s3:", str(err))
 
-
+# Get the vocab size from the map
 def get_vocab_size():
     merges_file = TOP_DIRECTORY + "/artifacts/merges.json"
     try:
@@ -86,6 +85,7 @@ def get_vocab_size():
         print(f"Error reading merges.json: {err}")
         return None
 
+# List s3 files
 def list_s3_pt_files(bucket_name='sgns-pairs'):
     # List all objects in the bucket
     files = []
@@ -104,6 +104,7 @@ def list_s3_pt_files(bucket_name='sgns-pairs'):
     files.sort(key=lambda x: x['key'])
     return files
 
+# Fetch a file from s3
 def fetch_pt_file_from_s3(bucket_name, file_key):
     try:
         # Get the object from S3
@@ -116,6 +117,7 @@ def fetch_pt_file_from_s3(bucket_name, file_key):
         print(f"Error fetching or loading {file_key} from S3: {str(e)}")
         return None
 
+# Upload a tensor to s3
 def upload_tensor_to_s3(tensor, key):
     # Serialize tensor to in-memory buffer
     buffer = io.BytesIO()

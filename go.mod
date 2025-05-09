@@ -20,6 +20,7 @@ require (
 require (
 	agrpc v0.0.0-00010101000000-000000000000 // indirect
 	bpe v0.0.0-00010101000000-000000000000 // indirect
+	embeddingspb v0.0.0-00010101000000-000000000000 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.29.13 // indirect

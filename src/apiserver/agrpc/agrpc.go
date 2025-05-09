@@ -29,7 +29,6 @@ func NewClient() (*Client, error) {
 	// Set up connection with retry logic
 	var conn *grpc.ClientConn
 	var err error
-
 	for i := 0; i < 5; i++ {
 		conn, err = grpc.Dial(
 			socketPath,
@@ -50,6 +49,7 @@ func NewClient() (*Client, error) {
 		return nil, fmt.Errorf("failed to connect to embeddings service after multiple attempts: %w", err)
 	}
 
+	// initialize client
 	client := pb.NewEmbeddingsClient(conn)
 	return &Client{conn: conn, client: client}, nil
 }
@@ -67,6 +67,7 @@ func (c *Client) GenerateEmbeddings(sText string, tokenIDs []int64, sUUID string
 	})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
+	// call GRPC method
 	resp, err := c.client.GenerateEmbeddings(ctx, &pb.EmbeddingsRequest{
 		TokenIds: tokenIDs,
 	})
@@ -92,7 +93,7 @@ func (c *Client) FindSimilarEmbeddings(tokenIDs []int64, topK int32) ([]string, 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Call the gRPC method
+	// call grpc method
 	resp, err := c.client.FindSimilarEmbeddings(ctx, &pb.FindSimilarRequest{
 		TokenIds: tokenIDs,
 		TopK:     topK,

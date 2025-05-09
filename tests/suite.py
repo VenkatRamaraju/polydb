@@ -1,4 +1,6 @@
-
+"""
+Note: These tests are generated.
+"""
 #!/usr/bin/env python3
 import unittest
 import requests
@@ -7,6 +9,7 @@ import time
 import random
 import string
 
+# Suite of tests
 class PolyDBAPITest(unittest.TestCase):
     """Test suite for PolyDB API"""
     
@@ -77,9 +80,6 @@ class PolyDBAPITest(unittest.TestCase):
         data = response.json()
         self.assertEqual(data["status"], "ok", f"Failed to insert text: {data.get('error', 'Unknown error')}")
         
-        # Allow some time for processing
-        time.sleep(1)
-    
     def test_02_insert_and_find_similar(self):
         """Test inserting a text and then finding it with a similar query"""
         # Insert a specific text
@@ -89,9 +89,6 @@ class PolyDBAPITest(unittest.TestCase):
         self.assertEqual(insert_response.status_code, 200)
         insert_data = insert_response.json()
         self.assertEqual(insert_data["status"], "ok", f"Failed to insert text: {insert_data.get('error', 'Unknown error')}")
-        
-        # Allow some time for processing
-        time.sleep(1)
         
         # Search with a similar query
         query_text = "AI is changing technology"
@@ -106,16 +103,12 @@ class PolyDBAPITest(unittest.TestCase):
                      "Original text not found in search results")
     
     def test_03_batch_insert_and_search(self):
-        """Test inserting multiple texts and searching among them"""
         # Insert all sample texts
         for text in self.SAMPLE_TEXTS:
             response = self._insert_text(text)
             self.assertEqual(response.status_code, 200)
             data = response.json()
             self.assertEqual(data["status"], "ok", f"Failed to insert text: {data.get('error', 'Unknown error')}")
-        
-        # Allow time for processing
-        time.sleep(2)
         
         # Search with various queries
         search_queries = [
@@ -133,7 +126,6 @@ class PolyDBAPITest(unittest.TestCase):
                          f"Expected text not found in search results for query: {query}")
     
     def test_04_top_k_parameter(self):
-        """Test the top_k parameter for limiting search results"""
         # Search with different top_k values
         for top_k in [1, 3, 5]:
             response = self._find_similar("artificial intelligence", top_k)
@@ -144,7 +136,6 @@ class PolyDBAPITest(unittest.TestCase):
                                f"Got more results than requested with top_k={top_k}")
     
     def test_05_random_text_insertion(self):
-        """Test inserting random texts and verifying they can be retrieved"""
         # Generate and insert 5 random texts
         random_texts = []
         for _ in range(5):
@@ -152,9 +143,6 @@ class PolyDBAPITest(unittest.TestCase):
             random_texts.append(text)
             response = self._insert_text(text)
             self.assertEqual(response.status_code, 200)
-        
-        # Allow time for processing
-        time.sleep(2)
         
         # Try to retrieve each random text
         for original_text in random_texts:
@@ -175,7 +163,6 @@ class PolyDBAPITest(unittest.TestCase):
             self.assertTrue(found, f"Could not retrieve random text with query: {query}")
     
     def test_06_multilingual_support(self):
-        """Test inserting and searching texts in multiple languages"""
         print("\nTesting multilingual support for the following languages:")
         for lang in self.MULTILINGUAL_TEXTS.keys():
             print(f"- {lang}")
@@ -193,7 +180,6 @@ class PolyDBAPITest(unittest.TestCase):
         
         # Allow time for processing - multilingual texts may need more processing time
         print("Waiting for processing to complete...")
-        time.sleep(5)
         
         # Search for each language with its corresponding query
         for lang, text_data in self.MULTILINGUAL_TEXTS.items():
@@ -266,8 +252,7 @@ class PolyDBAPITest(unittest.TestCase):
 
 if __name__ == "__main__":
     # Wait a moment for the server to be fully started
-    print("Waiting 3 seconds for the server to be fully initialized...")
-    time.sleep(3)
+    print("Running tests...")
     
     # Run the tests
     unittest.main()

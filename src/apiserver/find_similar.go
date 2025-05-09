@@ -71,6 +71,7 @@ func FindSimilar(sText string, topK int32, sUUID string) *FindSimilarResponse {
 
 // process find similar requests
 func LaunchFindSimilarHandler() {
+	// continuously wait for requests
 	for job := range ChannelFindSimilarRequests {
 		// call function
 		response := FindSimilar(job.Text, job.TopK, job.UUID)

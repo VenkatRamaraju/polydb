@@ -4,5 +4,3 @@ channels:
 dependencies:
   - numpy=1.26.4
   - python=3.9
-  - faiss-cpu
-prefix: /Users/venkyramaraju/miniconda3/envs/polyvec
